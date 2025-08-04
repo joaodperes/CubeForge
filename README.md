@@ -33,3 +33,17 @@ When a house in your deck has less than 12 cards (but at least 6), you must fill
 - [ ] Add house enhancements
 - [ ] Add Gigantics
 - [ ] Add Special rarity / linked cards
+
+# Custom Cube
+
+A custom cube can be created via cube_generator.py.
+
+Start by running ```pip install -r requirements.txt``` in the terminal, then add ```cards.json``` to the [/cards/](/cards/) folder. You can get it using, for instance, the [Decks of Keyforge](https://decksofkeyforge.com/) API through a script. If you're unsure how to do this, feel free to use cards.py in my [Decks-of-Keyforge repo](https://github.com/joaodperes/Decks-of-Keyforge).
+
+```cards.txt``` is the list of cards to add to the cube, one per line of text. 
+
+> [!IMPORTANT] 
+> cards.json file will not include special characters in the cardTitle value, so some transformations may be required:
+> ```Po's Pixies -> Pos Pixies```
+
+To run the script, just open the terminal and type ```python cube_generator.py```.
