@@ -18,12 +18,12 @@ When a house in your deck has less than 12 cards (but at least 6), you must fill
 | House | Token Name | Token Image |
 |-------|------------|-------------|
 | Brobnar | Warrior | ![Warrior](/cards/Brobnar/warrior.png) |
-| Dis | Snare | https://keyforge-card-images.s3-us-west-2.amazonaws.com/card-images-houses/dis/snare.png |
-| Logos | Chronicler | https://keyforge-card-images.s3-us-west-2.amazonaws.com/card-images-houses/logos/chronicler.png |
-| Mars | Rebel | https://keyforge-card-images.s3-us-west-2.amazonaws.com/card-images-houses/mars/rebel.png |
-| Sanctum | Defender | https://keyforge-card-images.s3-us-west-2.amazonaws.com/card-images-houses/sanctum/defender.png |
-| Shadows | Prowler | https://keyforge-card-images.s3-us-west-2.amazonaws.com/card-images-houses/shadows/prowler.png |
-| Untamed | Twilight Pixie | https://keyforge-card-images.s3-us-west-2.amazonaws.com/card-images-houses/untamed/twilight-pixie.png |
+| Dis | Snare | ![Snare](/cards/Dis/Snare.png)|
+| Logos | Chronicler | ![Chronicler](/cards/Logos/Chronicler.png) |
+| Mars | Rebel | ![Rebel](/cards/Mars/Rebel.png) |
+| Sanctum | Defender | ![Defender](/cards/Sanctum/Defender.png) |
+| Shadows | Prowler | ![Prowler](/cards/Shadows/Prowler.png) |
+| Untamed | Twilight Pixie | ![Twilight Pixie](/cards/Untamed/Twilight_Pixie.png)|
 
 ## Future Ideas
 
