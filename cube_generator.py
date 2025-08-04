@@ -6,10 +6,11 @@ from collections import Counter  # to count occurrences of card titles
 
 # Base directory for all card-related files
 CARDS_DIR = 'cards'
+STATS_DIR = 'stats'
 CARDS_TXT = os.path.join(CARDS_DIR, 'cards.txt')
 CARDS_JSON = os.path.join(CARDS_DIR, 'cards.json')
 OUTPUT_MD = os.path.join(CARDS_DIR, 'cube.md')
-OUTPUT_CSV = os.path.join(CARDS_DIR, 'cube_stats.csv')
+OUTPUT_CSV = os.path.join(STATS_DIR, 'cube_stats.csv')
 LOG_FILE = os.path.join(CARDS_DIR, 'cube.log')
 
 # Count all card titles (including duplicates)
