@@ -59,7 +59,7 @@ The draft does not include tokens in the pool and the bots have the following dr
 - When a full house has already been drafted, it can still pick cards in that house when the score is significantly higher than the worst card's in that house
 - While not strictly a goal, Efficiency and Recursion values also increase the card's score
 
-> ![NOTE]
+> [!NOTE]
 > Synergies, traits and other bonuses are currently not assessed
 
 To simulate a draft, run ```python draft_simulator.py```. You'll be given 10 numbered cards, pick one and move to the next pack, until all 6 rounds have been drafted!
