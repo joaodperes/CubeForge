@@ -5,13 +5,13 @@ import os
 
 from draft_simulator import (
     load_cube_md,
-    load_card_stats,
+    load_card_stats_from_json,
     build_card_pool,
     bot_pick,
     PACK_SIZE,
     NUM_ROUNDS,
     CUBE_MD_PATH,
-    STATS_CSV_PATH,
+    CARDS_JSON_PATH,
     DEFAULT_NUM_PLAYERS
 )
 
@@ -26,8 +26,8 @@ class DraftUI:
 
         # Load data
         self.cards = load_cube_md(CUBE_MD_PATH)
-        self.card_pool, self.house_map = build_card_pool(self.cards)
-        self.stats = load_card_stats(STATS_CSV_PATH)
+        self.card_pool, _ = build_card_pool(self.cards)
+        self.stats, self.house_map = load_card_stats_from_json(CARDS_JSON_PATH)
 
         self.num_players = self.prompt_player_count()
         self.players = [[] for _ in range(self.num_players)]

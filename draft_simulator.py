@@ -1,12 +1,12 @@
-import csv
 import random
+import json
 
 # Configuration
 PACK_SIZE = 10
 NUM_ROUNDS = 6
 DEFAULT_NUM_PLAYERS = 3
 CUBE_MD_PATH = 'cards/cube.md'
-STATS_CSV_PATH = 'cards/cube_stats.csv'
+CARDS_JSON_PATH = 'cards/cards.json'
 
 # Draft goals (used for evaluating picks)
 TARGET_STATS = {
@@ -16,14 +16,12 @@ TARGET_STATS = {
     "creatureControl": 12
 }
 
-# Parse float helper
 def parse_float(val):
     try:
         return float(val.replace(',', '.'))
     except:
         return 0.0
 
-# Load card data from cube.md, skipping tokens
 def load_cube_md(md_path):
     cards = []
     with open(md_path, 'r', encoding='utf-8') as f:
@@ -36,7 +34,7 @@ def load_cube_md(md_path):
                 house = parts[0]
                 card_title = parts[1]
                 if not card_title or card_title == '---':
-                    continue  # skip invalid rows
+                    continue
                 try:
                     nr_copies = int(parts[2])
                 except ValueError:
@@ -50,79 +48,112 @@ def load_cube_md(md_path):
                     })
     return cards
 
-# Load card stats from CSV (names aligned to script 1)
-def load_card_stats(path):
-    stats = {}
-    with open(path, newline='', encoding='utf-8') as f:
-        reader = csv.DictReader(f, delimiter=';')
-        for row in reader:
-            title = row['CardTitle']
-            try:
-                stats[title] = {
-                    'amberControl': parse_float(row.get('amberControl', 0)),
-                    'expectedAmber': parse_float(row.get('expectedAmber', 0)),
-                    'artifactControl': parse_float(row.get('artifactControl', 0)),
-                    'creatureControl': parse_float(row.get('creatureControl', 0)),
-                    'efficiency': parse_float(row.get('efficiency', 0)),
-                    'recursion': parse_float(row.get('recursion', 0))
-                }
-            except:
-                continue
-    return stats
-
-# Build card pool and house map
 def build_card_pool(cards):
     pool = []
-    house_map = {}
     for card in cards:
         pool.extend([card['CardTitle']] * card['NrCopies'])
-        house_map[card['CardTitle']] = card['House']
-    return pool, house_map
+    return pool, {}
 
-# Bot pick logic with soft house disincentive
+def load_card_stats_from_json(json_path):
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+
+    stats = {}
+    house_map = {}
+
+    for entry in data:
+        title = entry.get('cardTitle')
+        if not title:
+            continue
+
+        house_list = entry.get('houses', [])
+        house = house_list[0] if house_list else None
+
+        extra = entry
+        traits = extra.get("extraCardInfo.traits", [])
+        synergies = extra.get("extraCardInfo.synergies", [])
+
+        stats[title] = {
+            'amberControl': extra.get('extraCardInfo.amberControl', 0.0),
+            'expectedAmber': extra.get('extraCardInfo.expectedAmber', 0.0),
+            'artifactControl': extra.get('extraCardInfo.artifactControl', 0.0),
+            'creatureControl': extra.get('extraCardInfo.creatureControl', 0.0),
+            'efficiency': extra.get('extraCardInfo.efficiency', 0.0),
+            'recursion': extra.get('extraCardInfo.recursion', 0.0),
+            'traits': traits,
+            'synergies': synergies
+        }
+
+        if house:
+            house_map[title] = house
+
+    return stats, house_map
+
 def bot_pick(pack, picked_cards, stats, house_map):
     best_score = None
     best_card = None
     house_counts = {}
+    picked_traits = set()
 
+    # Step 1: Collect picked traits and house counts
     for c in picked_cards:
         h = house_map.get(c)
-        house_counts[h] = house_counts.get(h, 0) + 1
+        if h:
+            house_counts[h] = house_counts.get(h, 0) + 1
+        card_stats = stats.get(c, {})
+        for trait in card_stats.get('traits', []):
+            t = trait.get('trait')
+            if t:
+                picked_traits.add(t)
 
+    # Step 2: Evaluate all cards in the pack
     for card in pack:
+        card_stats = stats.get(card, {})
         house = house_map.get(card)
-        s = stats.get(card, None)
-        if not house or not s:
+        if not card_stats or not house:
             continue
 
-        # Base score from stats
-        score = sum(s.get(k, 0) * TARGET_STATS[k] for k in TARGET_STATS)
-        score += 0.5 * s.get('efficiency', 0) + 0.5 * s.get('recursion', 0)
+        ### --- 1. Trait/Synergy-Based Scoring (Primary) ---
+        synergy_score = 0.0
+        for synergy in card_stats.get('synergies', []):
+            trait = synergy.get('trait')
+            rating = synergy.get('rating', 0)
+            if trait in picked_traits:
+                synergy_score += rating * 1.0  # ← BIG impact now
 
-        # Get how many cards from this house the player has already drafted
-        count = house_counts.get(house, 0)
+        ### --- 2. House Commitment Scoring (Secondary) ---
+        house_count = house_counts.get(house, 0)
+        if house_count > 12:
+            house_multiplier = 1 / (1.2 ** (house_count - 12))  # soften exponential
+        elif house_count == 12:
+            house_multiplier = 1.75
+        elif 9 <= house_count < 12:
+            house_multiplier = 1.5
+        elif 6 <= house_count < 9:
+            house_multiplier = 1.3
+        elif 3 <= house_count < 6:
+            house_multiplier = 1.1
+        elif 1 <= house_count < 3:
+            house_multiplier = 0.9
+        else:
+            house_multiplier = 0.75
 
-        # Scoring adjustments to encourage full house commitment
-        if count > 12:
-            score /= (1.3 ** (count - 12))  # exponential penalty
-        elif count == 12:
-            score *= 1.5  # perfect house bonus
-        elif 9 <= count < 12:
-            score *= 1.3
-        elif 6 <= count < 9:
-            score *= 1.1
-        elif 3 <= count < 6:
-            score *= 0.95
-        elif 1 <= count < 3:
-            score *= 0.9
+        ### --- 3. Card Stat Score (Tie-breaker) ---
+        stat_score = (
+            0.1 * sum(card_stats.get(k, 0) * TARGET_STATS.get(k, 0) for k in TARGET_STATS)
+            + 0.05 * card_stats.get('efficiency', 0)
+            + 0.05 * card_stats.get('recursion', 0)
+        )
 
-        if best_score is None or score > best_score:
-            best_score = score
+        ### --- Final Score ---
+        total_score = synergy_score * house_multiplier + stat_score
+
+        if best_score is None or total_score > best_score:
+            best_score = total_score
             best_card = card
 
     return best_card or random.choice(pack)
 
-# Run the draft
 def run_draft(card_pool, house_map, stats, num_players):
     total_packs = num_players * NUM_ROUNDS
     if len(card_pool) < total_packs * PACK_SIZE:
@@ -161,7 +192,6 @@ def run_draft(card_pool, house_map, stats, num_players):
 
     return players
 
-# Display drafted decks with house summary
 def display_drafts(players, house_map):
     for i, picks in enumerate(players):
         print(f"=== Player {i+1} Picks ===")
@@ -172,12 +202,11 @@ def display_drafts(players, house_map):
             print(f"[{house}] {card}")
         print(f"Houses used: {house_counts}")
 
-# Main
 if __name__ == '__main__':
     try:
         cards = load_cube_md(CUBE_MD_PATH)
-        card_pool, house_map = build_card_pool(cards)
-        stats = load_card_stats(STATS_CSV_PATH)
+        card_pool, _ = build_card_pool(cards)
+        stats, house_map = load_card_stats_from_json(CARDS_JSON_PATH)
 
         num_players = input(f"Enter number of players (default {DEFAULT_NUM_PLAYERS}): ").strip()
         num_players = int(num_players) if num_players else DEFAULT_NUM_PLAYERS

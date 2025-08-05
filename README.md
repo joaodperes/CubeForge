@@ -52,6 +52,9 @@ To run the script, just open the terminal and type ```python cube_generator.py``
 
 Using draft_simulator.py you can simulate a draft with at least 2 bots. The maximum supported number of bots will be determined by the number of cards available in the cube; currently it is 9 players (1 human + 8 bots) as 10 would require 600 cards, excluding tokens.
 
+> [!IMPORTANT] 
+> For a visual draft, use ```python draft_ui.py``` instead
+
 The draft does not include tokens in the pool and the bots have the following draft goals:
 
 - AERC value goals (defined in ```TARGET_STATS```)
