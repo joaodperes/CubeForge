@@ -8,7 +8,6 @@ To support this, the _current_ ruleset is as follows:
 1.  6 packs of 10 cards per player (300 cards supports 60 * 5 players)
 2.  Alliance deck building rules still apply
 3.  To add a house to your deck, you must have at least 6 cards from that house. The rest of the house will be filled with the house token in question (see below)
-4.  Houses should be added to the draft at a minimum of 1 per player
 
 The full card list can be found in the [cards](/cards/) folder, and the card images in each house's subfolder.
 
@@ -48,3 +47,19 @@ Start by running ```pip install -r requirements.txt``` in the terminal, then add
 > ```Po's Pixies -> Pos Pixies```
 
 To run the script, just open the terminal and type ```python cube_generator.py```.
+
+# Draft Simulator
+
+Using draft_simulator.py you can simulate a draft with at least 2 bots. The maximum supported number of bots will be determined by the number of cards available in the cube; currently it is 9 players (1 human + 8 bots) as 10 would require 600 cards, excluding tokens.
+
+The draft does not include tokens in the pool and the bots have the following draft goals:
+
+- AERC value goals (defined in ```TARGET_STATS```)
+- Drafting full houses (12 cards)
+- When a full house has already been drafted, it can still pick cards in that house when the score is significantly higher than the worst card's in that house
+- While not strictly a goal, Efficiency and Recursion values also increase the card's score
+
+> ![NOTE]
+> Synergies, traits and other bonuses are currently not assessed
+
+To simulate a draft, run ```python draft_simulator.py```. You'll be given 10 numbered cards, pick one and move to the next pack, until all 6 rounds have been drafted!
