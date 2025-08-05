@@ -94,12 +94,15 @@ for card in cards:
     except Exception as e:
         with open(LOG_FILE, 'a', encoding='utf-8') as log:
             log.write(f"Failed to download image for '{title}': {e}\n")
+    
+    # Determine if token to exclude from draft
+    is_token = "Yes" if card.get('token', False) else ""
 
     # Markdown row with forward slashes in path for compatibility
     relative_img_path = f"{house}/{img_name}".replace('\\', '/')
     img_markdown = f"[{img_name}]({relative_img_path})"
     count = title_counter[title]
-    markdown_rows.append((house, f"| {house} | {title} | {count} | {img_markdown} |"))
+    markdown_rows.append((house, f"| {house} | {title} | {count} | {img_markdown} | {is_token} |"))
 
     # Extract and collect extraCardInfo stats using flat key names
     def fmt(value):
@@ -117,12 +120,12 @@ for card in cards:
     ])
 
 # Sort markdown table by house
-markdown_rows.sort(key=lambda x: x[0])
+markdown_rows.sort(key=lambda x: (x[0], x[1]))
 
 # Write markdown file (image links only)
 with open(OUTPUT_MD, 'w', encoding='utf-8') as md:
-    md.write('| House | CardTitle | Nr of Copies | ImagePath |\n')
-    md.write('| --- | --- | --- | --- |\n')
+    md.write('| House | Card | Nr of Copies | Image Link | Is Token |\n')
+    md.write('| --- | --- | --- | --- | --- |\n')
     for _, row in markdown_rows:
         md.write(row + '\n')
 
