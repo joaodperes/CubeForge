@@ -53,7 +53,7 @@ To run the script, just open the terminal and type ```python cube_generator.py``
 Using draft_simulator.py you can simulate a draft with at least 2 bots. The maximum supported number of bots will be determined by the number of cards available in the cube; currently it is 9 players (1 human + 8 bots) as 10 would require 600 cards, excluding tokens.
 
 > [!IMPORTANT] 
-> For a visual draft, use ```python draft_ui.py``` instead
+> For a draft with a visual interface, use ```python draft_ui.py``` instead.
 
 The draft does not include tokens in the pool and the bots have the following draft goals:
 
@@ -61,8 +61,6 @@ The draft does not include tokens in the pool and the bots have the following dr
 - Drafting full houses (12 cards)
 - When a full house has already been drafted, it can still pick cards in that house when the score is significantly higher than the worst card's in that house
 - While not strictly a goal, Efficiency and Recursion values also increase the card's score
-
-> [!NOTE]
-> Synergies, traits and other bonuses are currently not assessed
+- Find synergies / traits in line with the cards that have already been drafted
 
 To simulate a draft, run ```python draft_simulator.py```. You'll be given 10 numbered cards, pick one and move to the next pack, until all 6 rounds have been drafted!
