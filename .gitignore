@@ -207,3 +207,4 @@ marimo/_lsp/
 __marimo__/
 
 draft_results_*.json
+bot_picks_log*.*
