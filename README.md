@@ -19,7 +19,7 @@ When a house in your deck has less than 12 cards (but at least 6), you must fill
 |-------|------------|-------------|
 | ![Brobnar](https://decksofkeyforge.com/static/media/brobnar.c40aaae2e299334c1554.png) | Warrior | ![Warrior](/cards/Brobnar/warrior.png) |
 | ![Dis](https://decksofkeyforge.com/static/media/dis.35644fd3bf6c380d0642.png) | Snare | ![Snare](/cards/Dis/Snare.png)|
-| ![Logos](https://decksofkeyforge.com/static/media/dis.35644fd3bf6c380d0642.png) | Chronicler | ![Chronicler](/cards/Logos/Chronicler.png) |
+| ![Logos](https://decksofkeyforge.com/static/media/logos.484392e136d7348d10c2.png) | Chronicler | ![Chronicler](/cards/Logos/Chronicler.png) |
 | ![Mars](https://decksofkeyforge.com/static/media/mars.7859071a456f03742a2a.png) | Rebel | ![Rebel](/cards/Mars/Rebel.png) |
 | ![Sanctum](https://decksofkeyforge.com/static/media/sanctum.5aa2df51e8a124c596bf.png) | Defender | ![Defender](/cards/Sanctum/Defender.png) |
 | ![Shadows](https://decksofkeyforge.com/static/media/shadows.ba312e6bbde412ebb397.png) | Prowler | ![Prowler](/cards/Shadows/Prowler.png) |
