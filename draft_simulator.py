@@ -7,6 +7,16 @@ NUM_ROUNDS = 6
 DEFAULT_NUM_PLAYERS = 3
 CUBE_MD_PATH = 'cards/cube.md'
 CARDS_JSON_PATH = 'cards/cards.json'
+_BOT_LOGS = []
+
+def initialize_bot_logs(num_players):
+    global _BOT_LOGS
+    _BOT_LOGS = [[] for _ in range(num_players)]
+
+def get_bot_logs():
+    if not _BOT_LOGS:
+        raise RuntimeError("BOT_LOGS not initialized.")
+    return _BOT_LOGS
 
 # Draft goals (used for evaluating picks)
 TARGET_STATS = {
@@ -89,11 +99,12 @@ def load_card_stats_from_json(json_path):
 
     return stats, house_map
 
-def bot_pick(pack, picked_cards, stats, house_map):
+def bot_pick(pack, picked_cards, stats, house_map, bot_index):
     best_score = None
     best_card = None
     house_counts = {}
     picked_traits = set()
+    picked_cards_set = set(picked_cards)
 
     # Step 1: Collect picked traits and house counts
     for c in picked_cards:
@@ -106,53 +117,127 @@ def bot_pick(pack, picked_cards, stats, house_map):
             if t:
                 picked_traits.add(t)
 
-    # Step 2: Evaluate all cards in the pack
+    # Step 2: Calculate current stat totals
+    current_stats = {k: 0.0 for k in TARGET_STATS}
+    for c in picked_cards:
+        c_stats = stats.get(c, {})
+        for k in TARGET_STATS:
+            current_stats[k] += c_stats.get(k, 0.0)
+
+    distinct_houses = len(house_counts)
+
+    # Step 3: Evaluate all cards in the pack
     for card in pack:
         card_stats = stats.get(card, {})
         house = house_map.get(card)
         if not card_stats or not house:
             continue
 
-        ### --- 1. Trait/Synergy-Based Scoring (Primary) ---
-        synergy_score = 0.0
-        for synergy in card_stats.get('synergies', []):
-            trait = synergy.get('trait')
-            rating = synergy.get('rating', 0)
-            if trait in picked_traits:
-                synergy_score += rating * 1.0  # ← BIG impact now
+    ### --- 1. Trait Synergy Score ---
+    synergy_score = 0.0
+    for synergy in card_stats.get('synergies', []):
+        trait = synergy.get('trait')
+        rating = synergy.get('rating', 0)
+        house_condition = synergy.get('house', 'anyHouse')
 
-        ### --- 2. House Commitment Scoring (Secondary) ---
-        house_count = house_counts.get(house, 0)
+        if trait in picked_traits:
+            valid = (
+                house_condition == 'anyHouse' or
+                (house_condition == 'house' and house == house_map.get(card)) or
+                (house_condition == 'outOfHouse' and house != house_map.get(card))
+            )
+            if valid:
+                synergy_score += rating * 1.0  # Weight stays the same
+
+    ### --- 2. Direct Combo Score ---
+    combo_bonus = 0.0
+    for combo_card in card_stats.get('comboWith', []):
+        if combo_card in picked_cards_set:
+            combo_info = stats.get(combo_card, {})
+            house_condition = combo_info.get('house', 'anyHouse')  # fallback
+            valid = (
+                house_condition == 'anyHouse' or
+                (house_condition == 'house' and house == house_map.get(combo_card)) or
+                (house_condition == 'outOfHouse' and house != house_map.get(combo_card))
+            )
+            if valid:
+                combo_bonus += 2.0  # Still tunable
+
+    ### --- 2b. Potential Future Combo Score ---
+    future_combo_bonus = 0.0
+    for picked in picked_cards:
+        picked_stats = stats.get(picked, {})
+        for target in picked_stats.get('comboWith', []):
+            if target == card:
+                house_condition = picked_stats.get('house', 'anyHouse')
+                valid = (
+                    house_condition == 'anyHouse' or
+                    (house_condition == 'house' and house == house_map.get(picked)) or
+                    (house_condition == 'outOfHouse' and house != house_map.get(picked))
+                )
+                if valid:
+                    future_combo_bonus += 1.0
+
+    ### --- 3. House Commitment Multiplier ---
+    house_count = house_counts.get(house, 0)
+    if distinct_houses < 3:
+        house_multiplier = 1.0  # No penalty early on
+    elif house in house_counts:
         if house_count > 12:
             house_multiplier = 1 / (1.2 ** (house_count - 12))  # soften exponential
-        elif house_count == 12:
+        elif house_count == 11:
             house_multiplier = 1.75
-        elif 9 <= house_count < 12:
+        elif 9 <= house_count < 11:
             house_multiplier = 1.5
         elif 6 <= house_count < 9:
             house_multiplier = 1.3
         elif 3 <= house_count < 6:
             house_multiplier = 1.1
-        elif 1 <= house_count < 3:
-            house_multiplier = 0.9
         else:
-            house_multiplier = 0.75
+            house_multiplier = 1.0
+    else:
+        house_multiplier = 0.5  # Discourage 4th house
 
-        ### --- 3. Card Stat Score (Tie-breaker) ---
-        stat_score = (
-            0.1 * sum(card_stats.get(k, 0) * TARGET_STATS.get(k, 0) for k in TARGET_STATS)
-            + 0.05 * card_stats.get('efficiency', 0)
-            + 0.05 * card_stats.get('recursion', 0)
-        )
+    ### --- 4. Stat-Based Score ---
+    stat_score = 0.0
+    unmet_goals = any(current_stats[k] < TARGET_STATS[k] for k in TARGET_STATS)
 
-        ### --- Final Score ---
-        total_score = synergy_score * house_multiplier + stat_score
+    if unmet_goals:
+        for k in TARGET_STATS:
+            if current_stats[k] < TARGET_STATS[k]:
+                stat_score += 0.1 * (TARGET_STATS[k] - current_stats[k]) * card_stats.get(k, 0.0)
+    else:
+        stat_score += 0.05 * card_stats.get('efficiency', 0.0)
+        stat_score += 0.03 * card_stats.get('recursion', 0.0)
+        stat_score += 0.02 * card_stats.get('creatureControl', 0.0)
 
-        if best_score is None or total_score > best_score:
-            best_score = total_score
-            best_card = card
+    ### --- 5. Final Score ---
+    total_score = (synergy_score + combo_bonus + future_combo_bonus) * house_multiplier + stat_score
 
-    return best_card or random.choice(pack)
+    if best_score is None or total_score > best_score:
+        best_score = total_score
+        best_card = card
+
+    chosen_card = best_card or random.choice(pack)
+
+    ### --- 6. Log the pick ---
+    get_bot_logs()[bot_index].append({
+        "pick_num": len(picked_cards) + 1,
+        "pack": pack.copy(),
+        "picked_cards": picked_cards.copy(),
+        "chosen_card": chosen_card,
+        "score": best_score,
+        "house_counts": dict(house_counts),
+        "current_stats": current_stats,
+        "synergy_score": synergy_score,
+        "combo_bonus": combo_bonus,
+        "future_combo_bonus": future_combo_bonus,
+        "house_multiplier": house_multiplier,
+        "stat_score": stat_score,
+        "card_house": house,
+    })
+
+    return chosen_card or random.choice(pack)
 
 def run_draft(card_pool, house_map, stats, num_players):
     total_packs = num_players * NUM_ROUNDS
@@ -186,7 +271,7 @@ def run_draft(card_pool, house_map, stats, num_players):
                         except:
                             pass
                 else:
-                    pick = bot_pick(pack, players[i], stats, house_map)
+                    pick = bot_pick(pack, players[i], stats, house_map, i)
                     pack.remove(pick)
                     players[i].append(pick)
 
@@ -213,6 +298,9 @@ if __name__ == '__main__':
 
         players = run_draft(card_pool, house_map, stats, num_players)
         display_drafts(players, house_map)
+
+        with open("bot_logs.json", "w", encoding="utf-8") as f:
+            json.dump(_BOT_LOGS, f, indent=2, ensure_ascii=False)
 
     except Exception as e:
         print(f"Error: {e}")

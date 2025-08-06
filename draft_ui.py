@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import os
+import json
 
 from draft_simulator import (
     load_cube_md,
@@ -12,7 +13,9 @@ from draft_simulator import (
     NUM_ROUNDS,
     CUBE_MD_PATH,
     CARDS_JSON_PATH,
-    DEFAULT_NUM_PLAYERS
+    DEFAULT_NUM_PLAYERS,
+    initialize_bot_logs,
+    get_bot_logs
 )
 
 CARD_IMAGE_PATH = 'cards'  # Base directory with images in /cards/<House>/<CardTitle>.jpg
@@ -32,6 +35,9 @@ class DraftUI:
         self.num_players = self.prompt_player_count()
         self.players = [[] for _ in range(self.num_players)]
         self.total_packs = self.num_players * NUM_ROUNDS
+
+        # after self.num_players is set in DraftUI.__init__ or wherever
+        initialize_bot_logs(self.num_players)
 
         # Pre-shuffle and prepare packs
         if len(self.card_pool) < self.total_packs * PACK_SIZE:
@@ -178,11 +184,23 @@ class DraftUI:
         pick = self.current_pack.pop(index)
         self.players[0].append(pick)
 
+        # Debugging: check if pick has unknown house
+        house = self.house_map.get(pick, "Unknown")
+        if house == "Unknown":
+            print(f"[DEBUG] Human picked unknown card: '{pick}' (not found in cards.json)")
+
         for i in range(1, self.num_players):
             bot_pack = self.packs[self.round_index * self.num_players + ((i + self.pick_num * self.direction) % self.num_players)]
-            bot_pick_result = bot_pick(bot_pack, self.players[i], self.stats, self.house_map)
+            bot_pick_result = bot_pick(bot_pack, self.players[i], self.stats, self.house_map, i)
+            
+            # Debugging: check if bot picked unknown card
+            house = self.house_map.get(bot_pick_result, "Unknown")
+            if house == "Unknown":
+                print(f"[DEBUG] Bot {i} picked unknown card: '{bot_pick_result}' (not found in cards.json)")
+            
             bot_pack.remove(bot_pick_result)
             self.players[i].append(bot_pick_result)
+
 
         self.pick_num += 1
         self.update_drafted()
@@ -231,7 +249,9 @@ class DraftUI:
             return
         
         from uuid import uuid4
-        import json
+
+        with open("bot_picks_log.json", "w", encoding="utf-8") as f:
+            json.dump(get_bot_logs(), f, indent=2, ensure_ascii=False)
 
         def export_json():
             if self.exported:
