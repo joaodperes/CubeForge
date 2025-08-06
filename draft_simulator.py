@@ -37,19 +37,19 @@ def load_cube_md(md_path):
     with open(md_path, 'r', encoding='utf-8') as f:
         lines = f.readlines()
         for line in lines:
-            if line.startswith('|') and 'CardTitle' not in line:
+            if line.startswith('|') and 'Card' not in line:
                 parts = [p.strip() for p in line.strip().split('|')[1:-1]]
                 if len(parts) < 5:
                     continue
-                house = parts[0]
-                card_title = parts[1]
+                house = parts[0].strip()
+                card_title = parts[1].strip()
                 if not card_title or card_title == '---':
                     continue
                 try:
                     nr_copies = int(parts[2])
                 except ValueError:
                     nr_copies = 1
-                is_token = parts[-1] == 'Yes'
+                is_token = parts[-1].strip().lower() == 'yes'
                 if not is_token:
                     cards.append({
                         'House': house,
