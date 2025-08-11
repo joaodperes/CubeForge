@@ -1,587 +1,288 @@
-Anger
-Anger
-Anger
-Autocannon
-Barehanded
-Barehanded
-Cowards End
-Cowards End
-Foozle
-Foozle
-Foozle
-Gauntlet of Command
-Gauntlet of Command
-Drummernaut
-Drummernaut
-Drummernaut
-Ganger Chieftain
-Ganger Chieftain
-Ganger Chieftain
-Groke
-Groke
-Groke
-Punch
-Punch
-Wardrummer
-Wardrummer
-Warsong
-Loot the Bodies
-Bumpsy
-Bumpsy
-Bumpsy
-Headhunter
-Headhunter
-Headhunter
-Might Makes Right
-Iron Obelisk
-Iron Obelisk
-Pile of Skulls
-Pile of Skulls
-Champions Challenge
-Forgemaster Og
-Forgemaster Og
-Shard of Strength
-Shard of Strength
-Kelifi Dragon
-Brothers in Battle
-Grump Buggy
-Sound the Horns
-Relentless Assault
-Blood Money
-Blood Money
-Blood Money
-Smith
-Smith
-Burn the Stockpile
-Burn the Stockpile
-Earthshaker
-Earthshaker
-Grenade Snib
-Grenade Snib
-Grenade Snib
-Lomir Flamefist
-Lomir Flamefist
-Lomir Flamefist
-Ogopogo
-Ogopogo
-Ogopogo
-The Flex
-Blood of Titans
-Tireless Crocag
-Tireless Crocag
-Mugwump
-Mugwump
-Mugwump
-Bingle Bangbang
-Bingle Bangbang
-Cowfyne
-Cowfyne
-Lollop the Titanic
-Lollop the Titanic
-Not Finished with You
-Shooler
-Shooler
-Shooler
-Exhume
-Exhume
-Tezmal
-Hysteria
-Hysteria
-Yurk
-Yurk
-Streke
-Streke
-Charette
-Charette
-Charette
-Cull the Weak
-Cull the Weak
-Dust Imp
-Dust Imp
-Lash of Broken Dreams
-Lash of Broken Dreams
-Banish
-Banish
-Banish
-Control the Weak
-Ember Imp
-Ember Imp
-Hand of Dis
-Hand of Dis
-Mind Barb
-Mind Barb
-Mind Barb
-Succubus
-Arise!
-Dominator Bauble
-Dominator Bauble
-Gateway to Dis
-Pit Demon
-Pit Demon
-Snudge
-Tocsin
-Tocsin
-Drumble
-Drumble
-Pitlord
-Neffru
-Neffru
-Soul Snatcher
-Soul Snatcher
-Orb of Invidius
-Orb of Invidius
-Shadow of Dis
-Collar of Subordination
-Hecatomb
-Hecatomb
-Poltergeist
-Three Fates
-Three Fates
-Shard of Pain
-Shard of Pain
-Tolas
-Tolas
-A Fair Game
-A Fair Game
-Creeping Oblivion
-Eater of the Dead
-Red-Hot Armor
-Red-Hot Armor
-Sacrificial Altar
-Guilty Hearts
-Truebaru
-Tentacus
-Tentacus
-Angwish
-Angwish
-Pain Reaction
-Pain Reaction
-Library of the Damned
-Library of the Damned
-Hexpion
-Hexpion
-Library of Babble
-Library of Babble
-Pip Pip
-Poke
-Poke
-Titan Mechanic
-Titan Mechanic
-Titan Librarian
-Titan Librarian
-Helper Bot
-Helper Bot
-Archimedes
-Archimedes
-Binate Rupture
-Binate Rupture
-Eyegor
-Eyegor
-Professor Sutterkin
-Professor Sutterkin
-Cutthroat Research
-Cutthroat Research
-Wild Wormhole
-Wild Wormhole
-Wild Wormhole
-Wild Wormhole
-Z.Y.X. Researcher
-Z.Y.X. Researcher
-Dextre
-Dextre
-Foggify
-Foggify
-Mother
-Mother
-Library Access
-Twin Bolt Emission
-Twin Bolt Emission
-Twin Bolt Emission
-Effervescent Principle
-Effervescent Principle
-Phase Shift
-Phase Shift
-The Curator
-Shard of Knowledge
-Shard of Knowledge
-Dysania
-Dysania
-Dysania
-Entropic Swirl
-Entropic Swirl
-Knowledge is Power
-Knowledge is Power
-Strange Gizmo
-Fila the Researcher
-[REDACTED]
-Project Z.Y.X.
-Project Z.Y.X.
-The Howling Pit
-Psychic Bug
-Reverse Time
-Reverse Time
-Skippy Timehog
-Memory Chip
-Remote Access
-Remote Access
-Sloppy Labwork
-Sloppy Labwork
-Interdimensional Graft
-Interdimensional Graft
-Eureka!
-Eureka!
-Scrambler Storm
-Dimension Door
-Dimension Door
-Neuro Syphon
-Neuro Syphon
-Positron Bolt
-Positron Bolt
-Positron Bolt
-Carpet Phloxem
-Carpet Phloxem
-Carpet Phloxem
-Ixxyxli Fixfinger
-Ixxyxli Fixfinger
-Mindwarper
-Mindwarper
-Mindwarper
-Vezyma Thinkdrone
-Vezyma Thinkdrone
-Zysysyx Shockworm
-Tyxl Beambuckler
-Tyxl Beambuckler
-Xanthyx Harvester
-Xanthyx Harvester
-Glyxl Proliferator
-Glyxl Proliferator
-Mars First
-Mars First
-Mothergun
-Mothergun
-Mothergun
-Soft Landing
-Soft Landing
-Squawker
-Squawker
-Tunk
-Yxili Marauder
-John Smyth
-John Smyth
-Ammonia Clouds
-Ammonia Clouds
-Ammonia Clouds
-Grabber Jammer
-Grabber Jammer
-Martian Generosity
-Qyxxlyx Plague Master
-Ulyq Megamouth
-Destructive Analysis
-Destructive Analysis
-Incubation Chamber
-Incubation Chamber
-Yzphyz Knowdrone
-Yzphyz Knowdrone
-Shard of Hate
-Shard of Hate
-Total Recall
-Brain Stem Antenna
-Entropic Manipulator
-Extinction
-Extinction
-Hypnotic Command
-Shatter Storm
-Shatter Storm
-Mass Abduction
-Mass Abduction
-Feeding Pit
-Martians Make Bad Allies
-Phylyx the Disintegrator
-Hypnobeam
-Sample Collection
-Sample Collection
-Zorg
-Storm Crawler
-Storm Crawler
-Mothership Support
-Mothership Support
-Mothership Support
-Red Planet Ray Gun
-Destroy Them All!
-Destroy Them All!
-Key Abduction
-Orbital Bombardment
-Orbital Bombardment
-Orbital Bombardment
-Nyzyk Resonator
-Nyzyk Resonator
-Nyzyk Resonator
-Uxlyx the Zookeeper
-EMP Blast
-EMP Blast
-Jammer Pack
-Jammer Pack
-Jammer Pack
-Deep Probe
-Deep Probe
-Ether Spider
-Crystal Hive
-Battle Fleet
-Combat Pheromones
-Combat Pheromones
-Invasion Portal
-Invasion Portal
-Mating Season
-Mating Season
-Biomatrix Backup
-Swap Widget
-Swap Widget
-Exterminate! Exterminate!
-Exterminate! Exterminate!
-Abond the Armorsmith
-Abond the Armorsmith
-Blinding Light
-Blinding Light
-Maruck the Marked
-Maruck the Marked
-Protect the Weak
-Protect the Weak
-Shield of Justice
-Shield of Justice
-Take Hostages
-Take Hostages
-Sir Marrows
-Sir Marrows
-Smite
-Smite
-The Grey Rider
-The Grey Rider
-Aubade the Grim
-Aubade the Grim
-Bulwark
-Bulwark
-Commander Remiel
-Commander Remiel
-Sequis
-Sequis
-Sergeant Zakiel
-Sergeant Zakiel
-Terms of Redress
-Terms of Redress
-Proclamation 346E
-Anahita the Trader
-Anahita the Trader
-Epic Quest
-Epic Quest
-Lord Golgotha
-Oath of Poverty
-Oath of Poverty
-Opal Knight
-Opal Knight
-Shard of Hope
-Shard of Hope
-One Stood Against Many
-One Stood Against Many
-Begone!
-Mother Northelle
-Mother Northelle
-The Vaultkeeper
-Hayyel the Merchant
-Hayyel the Merchant
-Honorable Claim
-Honorable Claim
-Numquid the Fair
-Mantle of the Zealot
-Mantle of the Zealot
-Baron Mengevin
-Baron Mengevin
-Sigil of Brotherhood
-Sigil of Brotherhood
-Haedroths Wall
-Haedroths Wall
-Radiant Truth
-Radiant Truth
-Doorstep to Heaven
-Doorstep to Heaven
-Free Markets
-Free Markets
-Gatekeeper
-Gatekeeper
-Gorm of Omm
-The Harder They Come
-Barrister Joya
-Equalize
-Equalize
-Champion Tabris
-Champion Tabris
-Glorious Few
-Glorious Few
-Shoulder Armor
-Virtuous Works
-Dusk Chronicles
-Dusk Chronicles
-Knuckles Bolton
-Knuckles Bolton
-Swindle
-Throwing Stars
-Throwing Stars
-Whistling Darts
-Whistling Darts
-Gamgee
-Gamgee
-Umbra
-Umbra
-Life for a Life
-Life for a Life
-Nerve Blast
-Nerve Blast
-Ronnie Wristclocks
-Ronnie Wristclocks
-Miasma
-Ghostly Hand
-Ghostly Hand
-Noddy the Thief
-Relentless Whispers
-Relentless Whispers
-Bait and Switch
-Bait and Switch
-Dodger
-Dodger
-Nexus
-Nexus
-Seeker Needle
-Urchin
-Urchin
-Sneklifter
-Sneklifter
-Treasure Map
-The Sting
-Heist Night
-Longfused Mines
-Longfused Mines
-Selwyn the Fence
-Shard of Greed
-Shard of Greed
-Customs Office
-Customs Office
-Sack of Coins
-Sack of Coins
-Evasion Sigil
-Masterplan
-Finishing Blow
-Finishing Blow
-One Last Job
-Duskrunner
-Duskrunner
-Special Delivery
-Special Delivery
-Subtle Maul
-Subtle Maul
-Nightforge
-Perplexing Sophistry
-Perplexing Sophistry
-Hidden Stash
-Hidden Stash
-Hidden Stash
-Brend the Fanatic
-Oubliette
-Too Much to Protect
-Murkens
-Murkens
-Carlo Phantom
-Carlo Phantom
-Booby Trap
-Booby Trap
-Old Bruno
-Magda the Rat
-Magda the Rat
-Mooncurser
-Mooncurser
-Speed Sigil
-Dharna
-Dharna
-Key Charge
-Marmo Swarm
-Glimmer
-Glimmer
-Theyre Everywhere!
-Theyre Everywhere!
-Regrowth
-Regrowth
-Full Moon
-Full Moon
-Rustgnawer
-Rustgnawer
-Rustgnawer
-Duskwitch
-Duskwitch
-Grovekeeper
-Grovekeeper
-Song of Spring
-Save the Pack
-Save the Pack
-Knoxx
-Knoxx
-Persistence Hunting
-Persistence Hunting
-Dust Pixie
-Hunting Witch
-Hunting Witch
-Murmook
-Murmook
-Dew Faerie
-Dew Faerie
-Cooperative Hunting
-Cooperative Hunting
-Witch of the Eye
-Witch of the Eye
-Lost in the Woods
-Lost in the Woods
-Gravid Cycle
-Witch of the Wilds
-Witch of the Wilds
-Pos Pixies
-Pos Pixies
-Fuzzy Gruen
-Fuzzy Gruen
-Kindrith Longshot
-Kindrith Longshot
-Mighty Tiger
-Mighty Tiger
-Piranha Monkeys
-Piranha Monkeys
-Shard of Life
-Shard of Life
-Teliga
-Teliga
-Punctuated Equilibrium
-Fertility Chant
-Word of Returning
-Word of Returning
-Chota Hazri
-Mimicry
-Mimicry
-Mimicry
-Nepenthe Seed
-Nepenthe Seed
-Natures Call
-Natures Call
-Flaxia
-Flaxia
-Grasping Vines
-Grasping Vines
-Panpaca, Anga
-Panpaca, Anga
-Panpaca, Jaga
-Panpaca, Jaga
-Soldiers to Flowers
-Ritual of Balance
-Ritual of Balance
-Lifeweb
-Warrior
-Snare
-Chronicler
-Rebel
-Defender
-Prowler
-Twilight Pixie
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp
+Adaptoid
+Rowdy Skald
+Vapor Imp

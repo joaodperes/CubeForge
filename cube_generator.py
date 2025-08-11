@@ -1,17 +1,3 @@
-#!/usr/bin/env python3
-"""
-cube_generator.py
-
-- Expects a 'cards' directory with:
-    - cards/cards.txt   (one card title per line; duplicates = copies)
-    - cards/cards.json  (full cards JSON)
-- Produces:
-    - cards/cube.md
-    - cards/cube.log
-
-Run:
-    SKIP_IMAGE_DOWNLOAD=1 python cube_generator.py
-"""
 import os
 import json
 import random
@@ -36,15 +22,6 @@ ENH_KEYS = [
 
 # ----- Helpers -----
 def get_field(card, key, default=''):
-    """
-    Robust getter that checks:
-      1) literal key on the card (e.g. 'extraCardInfo.amberControl')
-      2) if dotted key, nested access (card['extraCardInfo']['amberControl'])
-      3) short name (the part after dot) on top-level card
-      4) short name inside card['extraCardInfo'] if present
-      5) top-level key (if key not dotted)
-    Returns default if not found or value is None/empty.
-    """
     # 1) literal key
     if key in card and card[key] not in (None, ''):
         return card[key]
@@ -173,12 +150,6 @@ for title, copies in title_counter.items():
             'img_name': img_name,
             'img_path': relative_img_path,
             'is_token': "Yes" if card.get('token', False) else "",
-            'amber_control': get_field(card, 'extraCardInfo.amberControl', ''),
-            'expected_amber': get_field(card, 'extraCardInfo.expectedAmber', ''),
-            'artifact_control': get_field(card, 'extraCardInfo.artifactControl', ''),
-            'creature_control': get_field(card, 'extraCardInfo.creatureControl', ''),
-            'efficiency': get_field(card, 'extraCardInfo.efficiency', ''),
-            'recursion': get_field(card, 'extraCardInfo.recursion', ''),
             'amber': amber_val,
             'max_enh': max_enh,
             'current_enh_total': 0,
@@ -240,9 +211,7 @@ if missing_images:
 
 # ----- Write cube.md (one row per copy) -----
 headers = [
-    'House', 'CardTitle', 'Image Link', 'Is Token',
-    'AmberControl', 'ExpectedAmber', 'ArtifactControl', 'CreatureControl',
-    'Efficiency', 'Recursion', 'Amber'
+    'House', 'CardTitle', 'Image Link', 'Is Token', 'Amber'
 ] + [label for _, label in ENH_KEYS]
 
 with open(OUTPUT_MD, 'w', encoding='utf-8') as md:
@@ -255,12 +224,6 @@ with open(OUTPUT_MD, 'w', encoding='utf-8') as md:
             p['title'],
             img_md,
             p['is_token'],
-            fmt(p['amber_control']),
-            fmt(p['expected_amber']),
-            fmt(p['artifact_control']),
-            fmt(p['creature_control']),
-            fmt(p['efficiency']),
-            fmt(p['recursion']),
             p['amber']
         ]
         # append enhancement counts in same ENH_KEYS order

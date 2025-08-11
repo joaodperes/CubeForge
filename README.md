@@ -17,13 +17,13 @@ When a house in your deck has less than 12 cards (but at least 6), you must fill
 
 | House | Token Name | Token Image |
 |-------|------------|-------------|
-| ![Brobnar](https://decksofkeyforge.com/static/media/brobnar.c40aaae2e299334c1554.png) | Warrior | ![Warrior](/cards/Brobnar/warrior.png) |
-| ![Dis](https://decksofkeyforge.com/static/media/dis.35644fd3bf6c380d0642.png) | Snare | ![Snare](/cards/Dis/Snare.png)|
-| ![Logos](https://decksofkeyforge.com/static/media/logos.484392e136d7348d10c2.png) | Chronicler | ![Chronicler](/cards/Logos/Chronicler.png) |
-| ![Mars](https://decksofkeyforge.com/static/media/mars.7859071a456f03742a2a.png) | Rebel | ![Rebel](/cards/Mars/Rebel.png) |
-| ![Sanctum](https://decksofkeyforge.com/static/media/sanctum.5aa2df51e8a124c596bf.png) | Defender | ![Defender](/cards/Sanctum/Defender.png) |
-| ![Shadows](https://decksofkeyforge.com/static/media/shadows.ba312e6bbde412ebb397.png) | Prowler | ![Prowler](/cards/Shadows/Prowler.png) |
-| ![Untamed](https://decksofkeyforge.com/static/media/untamed.7db4a2fb00228c9162f7.png) | Twilight Pixie | ![Twilight Pixie](/cards/Untamed/Twilight_Pixie.png)|
+| ![Brobnar](/houses/brobnar.png) | Warrior | ![Warrior](/cards/Brobnar/warrior.png) |
+| ![Dis](/houses/dis.png) | Snare | ![Snare](/cards/Dis/Snare.png)|
+| ![Logos](house/logos.png) | Chronicler | ![Chronicler](/cards/Logos/Chronicler.png) |
+| ![Mars](/houses/mars.png) | Rebel | ![Rebel](/cards/Mars/Rebel.png) |
+| ![Sanctum](/houses/sanctum.png) | Defender | ![Defender](/cards/Sanctum/Defender.png) |
+| ![Shadows](/houses/shadows.png) | Prowler | ![Prowler](/cards/Shadows/Prowler.png) |
+| ![Untamed](/houses/untamed.png) | Twilight Pixie | ![Twilight Pixie](/cards/Untamed/Twilight_Pixie.png)|
 
 ## Future Ideas
 
@@ -38,7 +38,7 @@ When a house in your deck has less than 12 cards (but at least 6), you must fill
 
 A custom cube can be created via cube_generator.py.
 
-Start by running ```pip install -r requirements.txt``` in the terminal, then add ```cards.json``` to the [/cards/](/cards/) folder. You can get it using, for instance, the [Decks of Keyforge](https://decksofkeyforge.com/) API through a script. If you're unsure how to do this, feel free to use cards.py in my [Decks-of-Keyforge repo](https://github.com/joaodperes/Decks-of-Keyforge).
+Start by running ```pip install -r requirements.txt``` in the terminal, then add ```cards.json``` to the [/cards/](/cards/) folder. You can use the version in this repo, or, if it's outdated, get it from the [Decks of Keyforge](https://decksofkeyforge.com/) API.
 
 ```cards.txt``` is the list of cards to add to the cube, one per line of text. 
 
@@ -46,14 +46,14 @@ Start by running ```pip install -r requirements.txt``` in the terminal, then add
 > cards.json file will not include special characters in the cardTitle value, so some transformations may be required:
 > ```Po's Pixies -> Pos Pixies```
 
-To run the script, just open the terminal and type ```python cube_generator.py```.
+To run the script, just open the terminal and run ```python cube_generator.py```.
 
 # Draft Simulator
 
-Using draft_simulator.py you can simulate a draft with at least 2 bots. The maximum supported number of bots will be determined by the number of cards available in the cube; currently it is 9 players (1 human + 8 bots) as 10 would require 600 cards, excluding tokens.
+Using draft_ui.py you can simulate a draft with at least 2 bots. The maximum supported number of bots will be determined by the number of cards available in the cube; currently it is 9 players (1 human + 8 bots) as 10 would require 600 cards, excluding tokens.
 
 > [!IMPORTANT] 
-> For a draft with a visual interface, use ```python draft_ui.py``` instead.
+> Support for CLI draft (draft_simulator) has been dropped.
 
 The draft does not include tokens in the pool and the bots have the following draft goals:
 
