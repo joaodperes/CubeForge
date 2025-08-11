@@ -1,141 +1,276 @@
-import os  # for file and directory operations
-import json  # for parsing JSON data
-import csv  # for writing extraCardInfo to a CSV
-import requests  # for HTTP requests to download images
-from collections import Counter  # to count occurrences of card titles
+#!/usr/bin/env python3
+"""
+cube_generator.py
 
-# Base directory for all card-related files
+- Expects a 'cards' directory with:
+    - cards/cards.txt   (one card title per line; duplicates = copies)
+    - cards/cards.json  (full cards JSON)
+- Produces:
+    - cards/cube.md
+    - cards/cube.log
+
+Run:
+    SKIP_IMAGE_DOWNLOAD=1 python cube_generator.py
+"""
+import os
+import json
+import random
+import requests
+from collections import Counter, defaultdict
+
+# ----- Config / paths -----
 CARDS_DIR = 'cards'
 CARDS_TXT = os.path.join(CARDS_DIR, 'cards.txt')
 CARDS_JSON = os.path.join(CARDS_DIR, 'cards.json')
 OUTPUT_MD = os.path.join(CARDS_DIR, 'cube.md')
-OUTPUT_CSV = os.path.join(CARDS_DIR, 'cube_stats.csv')
 LOG_FILE = os.path.join(CARDS_DIR, 'cube.log')
 
-# Count all card titles (including duplicates)
-with open(CARDS_TXT, 'r', encoding='utf-8') as f:
-    all_titles = [line.strip() for line in f if line.strip()]
-    title_counter = Counter(all_titles)
-    titles = set(title_counter.keys())
+# ----- Enhancement keys & friendly labels -----
+ENH_KEYS = [
+    ('extraCardInfo.enhancementAmber', 'Enh.Amber'),
+    ('extraCardInfo.enhancementCapture', 'Enh.Capture'),
+    ('extraCardInfo.enhancementDraw', 'Enh.Draw'),
+    ('extraCardInfo.enhancementDamage', 'Enh.Damage'),
+    ('extraCardInfo.enhancementDiscard', 'Enh.Discard'),
+]
 
-# Load the JSON data containing all cards
+# ----- Helpers -----
+def get_field(card, key, default=''):
+    """
+    Robust getter that checks:
+      1) literal key on the card (e.g. 'extraCardInfo.amberControl')
+      2) if dotted key, nested access (card['extraCardInfo']['amberControl'])
+      3) short name (the part after dot) on top-level card
+      4) short name inside card['extraCardInfo'] if present
+      5) top-level key (if key not dotted)
+    Returns default if not found or value is None/empty.
+    """
+    # 1) literal key
+    if key in card and card[key] not in (None, ''):
+        return card[key]
+
+    if '.' in key:
+        top, rest = key.split('.', 1)
+        # 2) nested form: card[top][rest]
+        top_obj = card.get(top)
+        if isinstance(top_obj, dict) and rest in top_obj and top_obj[rest] not in (None, ''):
+            return top_obj[rest]
+        # 3) top-level short name
+        if rest in card and card[rest] not in (None, ''):
+            return card[rest]
+        # 4) explicit extraCardInfo fallback
+        extra = card.get('extraCardInfo', {}) or {}
+        if rest in extra and extra[rest] not in (None, ''):
+            return extra[rest]
+    else:
+        # not dotted: try top-level then extraCardInfo
+        if key in card and card[key] not in (None, ''):
+            return card[key]
+        extra = card.get('extraCardInfo', {}) or {}
+        if key in extra and extra[key] not in (None, ''):
+            return extra[key]
+
+    return default
+
+def fmt(value):
+    """Formatting similar to previous behavior: replace '.' with ',' for floats"""
+    return str(value).replace('.', ',') if isinstance(value, float) else value
+
+def safe_int(val, default=0):
+    """Convert value to int safely"""
+    if val is None or val == '':
+        return default
+    try:
+        return int(val)
+    except Exception:
+        try:
+            return int(float(val))
+        except Exception:
+            return default
+
+# ----- Load titles & counts -----
+if not os.path.exists(CARDS_TXT):
+    raise SystemExit(f"Missing {CARDS_TXT} - put cards.txt (one title per line) in the '{CARDS_DIR}' folder.")
+
+with open(CARDS_TXT, 'r', encoding='utf-8') as f:
+    titles_list = [line.strip() for line in f if line.strip()]
+title_counter = Counter(titles_list)
+
+# ----- Load JSON -----
+if not os.path.exists(CARDS_JSON):
+    raise SystemExit(f"Missing {CARDS_JSON} - put cards.json in the '{CARDS_DIR}' folder.")
+
 with open(CARDS_JSON, 'r', encoding='utf-8') as f:
     cards = json.load(f)
 
-# Extract all cardTitle values present in the JSON
-json_titles = {card.get('cardTitle') for card in cards if 'cardTitle' in card}
+# Map cardTitle -> card (first occurrence)
+json_map = {card.get('cardTitle'): card for card in cards if 'cardTitle' in card}
 
-# Initialize the log file
+# ----- Logging setup -----
+def log_write(msg):
+    with open(LOG_FILE, 'a', encoding='utf-8') as log:
+        log.write(msg + '\n')
+
+# Start fresh log
 with open(LOG_FILE, 'w', encoding='utf-8') as log:
     log.write('=== CUBE GENERATION LOG ===\n')
-    missing = titles - json_titles
-    if missing:
-        log.write('Missing JSON entries for these titles:\n')
-        for title in sorted(missing):
-            log.write(f"- {title}\n")
+
+# Report missing titles
+missing = set(title_counter.keys()) - set(json_map.keys())
+if missing:
+    log_write('Missing JSON entries for these titles:')
+    for t in sorted(missing):
+        log_write(f" - {t}")
+else:
+    log_write('All titles found in JSON.')
+
+# ----- Build per-copy pool and count enhancement totals -----
+pool = []  # list of dicts, one per card copy
+enh_totals = defaultdict(int)
+missing_images = []
+
+for title, copies in title_counter.items():
+    card = json_map.get(title)
+    if not card:
+        # skip missing; logged earlier
+        continue
+
+    # determine house (previous scripts usually used card['houses'][0])
+    houses = card.get('houses') or card.get('house') or []
+    if isinstance(houses, list) and houses:
+        house = houses[0]
+    elif isinstance(houses, str) and houses:
+        house = houses
     else:
-        log.write('All titles found in JSON.\n')
+        house = 'Unknown'
 
-# Cleanup: remove obsolete images
-with open(LOG_FILE, 'a', encoding='utf-8') as log:
-    log.write('\nCleaning up obsolete images...\n')
-for sub in os.listdir(CARDS_DIR):
-    sub_path = os.path.join(CARDS_DIR, sub)
-    if os.path.isdir(sub_path):
-        for file in os.listdir(sub_path):
-            if file.lower().endswith('.png'):
-                base = os.path.splitext(file)[0].replace('_', ' ')
-                if base not in titles:
-                    try:
-                        os.remove(os.path.join(sub_path, file))
-                        with open(LOG_FILE, 'a', encoding='utf-8') as log:
-                            log.write(f"Removed obsolete image: {sub}/{file}\n")
-                    except Exception as e:
-                        with open(LOG_FILE, 'a', encoding='utf-8') as log:
-                            log.write(f"Failed to remove {sub}/{file}: {e}\n")
-
-# Prepare data structures for markdown and CSV
-markdown_rows = []  # Markdown rows (House, CardTitle, Nr of Copies, Link)
-csv_rows = []  # CSV rows for stats
-
-# Process each card in the JSON
-for card in cards:
-    title = card.get('cardTitle')
-    if title not in titles:
-        continue
-
-    houses = card.get('houses', [])
-    if not houses:
-        with open(LOG_FILE, 'a', encoding='utf-8') as log:
-            log.write(f"No house found for '{title}', skipping.\n")
-        continue
-
-    house = houses[0]
+    # Ensure house folder exists
     folder_path = os.path.join(CARDS_DIR, house)
     os.makedirs(folder_path, exist_ok=True)
 
-    # Normalize filename (spaces → underscores)
+    # image names and relative path (use forward slashes)
     safe_name = title.replace(' ', '_')
     img_name = f"{safe_name}.png"
+    relative_img_path = f"{house}/{img_name}".replace('\\', '/')
     img_path = os.path.join(folder_path, img_name)
 
-    # Download image
+    # read amber (top-level)
+    amber_val = safe_int(card.get('amber', 0), 0)
+
+    # Count enhancements declared in JSON (treated as per-copy value)
+    for ek, _label in ENH_KEYS:
+        raw = get_field(card, ek, 0)
+        enh_count = safe_int(raw, 0)
+        # Multiply by number of copies — these are the total enhancement units to distribute
+        enh_totals[ek] += enh_count * copies
+
+    # create pool entries (one per copy)
+    for i in range(copies):
+        max_enh = max(0, 5 - amber_val)
+        entry = {
+            'house': house,
+            'title': title,
+            'img_name': img_name,
+            'img_path': relative_img_path,
+            'is_token': "Yes" if card.get('token', False) else "",
+            'amber_control': get_field(card, 'extraCardInfo.amberControl', ''),
+            'expected_amber': get_field(card, 'extraCardInfo.expectedAmber', ''),
+            'artifact_control': get_field(card, 'extraCardInfo.artifactControl', ''),
+            'creature_control': get_field(card, 'extraCardInfo.creatureControl', ''),
+            'efficiency': get_field(card, 'extraCardInfo.efficiency', ''),
+            'recursion': get_field(card, 'extraCardInfo.recursion', ''),
+            'amber': amber_val,
+            'max_enh': max_enh,
+            'current_enh_total': 0,
+            'enh_counts': {ek: 0 for ek, _ in ENH_KEYS},
+            # keep URL for potential download
+            'img_url': card.get('cardTitleUrl') or ''
+        }
+        pool.append(entry)
+
+log_write(f"Built pool with {len(pool)} copies (one per card copy).")
+log_write("Total enhancements read from JSON (units to assign):")
+for ek, _ in ENH_KEYS:
+    log_write(f" - {ek}: {enh_totals[ek]}")
+
+# ----- Assign enhancements randomly, respecting per-card max -----
+random.seed()
+
+for ek, label in ENH_KEYS:
+    to_assign = int(enh_totals[ek])
+    assigned = 0
+    for _ in range(to_assign):
+        eligible = [idx for idx, p in enumerate(pool) if p['current_enh_total'] < p['max_enh']]
+        if not eligible:
+            log_write(f"Could not assign remaining {to_assign - assigned} units of {ek}: no eligible cards left.")
+            break
+        idx = random.choice(eligible)
+        pool[idx]['enh_counts'][ek] += 1
+        pool[idx]['current_enh_total'] += 1
+        assigned += 1
+    log_write(f"Assigned {assigned}/{to_assign} of {ek}.")
+
+# ----- Optionally download images (skip with SKIP_IMAGE_DOWNLOAD=1) -----
+skip_images = os.environ.get('SKIP_IMAGE_DOWNLOAD') == '1'
+for p in pool:
+    if skip_images:
+        continue
+    img_url = p.get('img_url')
+    if not img_url:
+        missing_images.append(p['title'])
+        continue
+    # only download if not already present or zero bytes
+    full_img_path = os.path.join(CARDS_DIR, p['img_path'].replace('/', os.sep))
+    if os.path.exists(full_img_path) and os.path.getsize(full_img_path) > 0:
+        continue
     try:
-        img_url = card.get('cardTitleUrl')
-        if not img_url:
-            raise ValueError("Missing 'cardTitleUrl'")
-        r = requests.get(img_url, stream=True)
+        r = requests.get(img_url, stream=True, timeout=30)
         r.raise_for_status()
-        with open(img_path, 'wb') as img_file:
+        # ensure dir exists
+        os.makedirs(os.path.dirname(full_img_path), exist_ok=True)
+        with open(full_img_path, 'wb') as fh:
             for chunk in r.iter_content(8192):
-                img_file.write(chunk)
-        with open(LOG_FILE, 'a', encoding='utf-8') as log:
-            log.write(f"Downloaded image for '{title}' as {house}/{img_name}\n")
+                fh.write(chunk)
     except Exception as e:
-        with open(LOG_FILE, 'a', encoding='utf-8') as log:
-            log.write(f"Failed to download image for '{title}': {e}\n")
-    
-    # Determine if token to exclude from draft
-    is_token = "Yes" if card.get('token', False) else ""
+        missing_images.append(p['title'])
+        log_write(f"Failed to download image for '{p['title']}': {e}")
 
-    # Markdown row with forward slashes in path for compatibility
-    relative_img_path = f"{house}/{img_name}".replace('\\', '/')
-    img_markdown = f"[{img_name}]({relative_img_path})"
-    count = title_counter[title]
-    markdown_rows.append((house, f"| {house} | {title} | {count} | {img_markdown} | {is_token} |"))
+if missing_images:
+    log_write(f"Images missing/unfetched for {len(set(missing_images))} distinct cards (sample): {', '.join(list(set(missing_images))[:20])}")
 
-    # Extract and collect extraCardInfo stats using flat key names
-    def fmt(value):
-        return str(value).replace('.', ',') if isinstance(value, float) else value
+# ----- Write cube.md (one row per copy) -----
+headers = [
+    'House', 'CardTitle', 'Image Link', 'Is Token',
+    'AmberControl', 'ExpectedAmber', 'ArtifactControl', 'CreatureControl',
+    'Efficiency', 'Recursion', 'Amber'
+] + [label for _, label in ENH_KEYS]
 
-    csv_rows.append([
-        house,
-        title,
-        fmt(card.get('extraCardInfo.amberControl', '')),
-        fmt(card.get('extraCardInfo.expectedAmber', '')),
-        fmt(card.get('extraCardInfo.artifactControl', '')),
-        fmt(card.get('extraCardInfo.creatureControl', '')),
-        fmt(card.get('extraCardInfo.efficiency', '')),
-        fmt(card.get('extraCardInfo.recursion', ''))
-    ])
-
-# Sort markdown table by house
-markdown_rows.sort(key=lambda x: (x[0], x[1]))
-
-# Write markdown file (image links only)
 with open(OUTPUT_MD, 'w', encoding='utf-8') as md:
-    md.write('| House | Card | Nr of Copies | Image Link | Is Token |\n')
-    md.write('| --- | --- | --- | --- | --- |\n')
-    for _, row in markdown_rows:
-        md.write(row + '\n')
+    md.write('| ' + ' | '.join(headers) + ' |\n')
+    md.write('| ' + ' | '.join(['---'] * len(headers)) + ' |\n')
+    for p in pool:
+        img_md = f"[{p['img_name']}]({p['img_path']})"
+        row_vals = [
+            p['house'],
+            p['title'],
+            img_md,
+            p['is_token'],
+            fmt(p['amber_control']),
+            fmt(p['expected_amber']),
+            fmt(p['artifact_control']),
+            fmt(p['creature_control']),
+            fmt(p['efficiency']),
+            fmt(p['recursion']),
+            p['amber']
+        ]
+        # append enhancement counts in same ENH_KEYS order
+        for ek, _ in ENH_KEYS:
+            row_vals.append(p['enh_counts'].get(ek, 0))
+        # escape pipes to keep markdown safe
+        safe_row = [str(v).replace('|', '\\|') for v in row_vals]
+        md.write('| ' + ' | '.join(safe_row) + ' |\n')
 
-# Write CSV file for card stats with semicolon delimiter
-with open(OUTPUT_CSV, 'w', encoding='utf-8', newline='') as csv_file:
-    writer = csv.writer(csv_file, delimiter=';')
-    writer.writerow([
-        'House', 'CardTitle', 'AmberControl', 'ExpectedAmber', 'ArtifactControl',
-        'CreatureControl', 'Efficiency', 'Recursion'
-    ])
-    writer.writerows(csv_rows)
+log_write(f"Wrote {len(pool)} rows to {OUTPUT_MD} (one per card copy).")
+log_write("Cube generation complete.")
 
-print("Done: cube.md and cube_stats.csv written. Images and log updated.")
+print(f"Done — wrote {OUTPUT_MD} and log to {LOG_FILE}. (SKIP_IMAGE_DOWNLOAD={'yes' if skip_images else 'no'})")
