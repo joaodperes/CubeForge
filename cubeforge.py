@@ -130,7 +130,7 @@ def main(argv=None):
     max_players = len(pool) // 60
     if args.players < 2 or args.players > max_players:
         p.error(f'{len(pool)} draftable cards support 2–{max_players} players; requested {args.players}.')
-    if len(pool) < len(card_list.read_text(encoding='utf-8').splitlines()) - 7:
+    if 'Missing JSON entries for these titles:' in log.read_text(encoding='utf-8'):
         print(f'Warning: some titles were not resolved. See {log}', file=sys.stderr)
     print(f'Prepared {len(pool)} draftable card copies for {args.players} players.')
     print(f'Card cube: {output}')
