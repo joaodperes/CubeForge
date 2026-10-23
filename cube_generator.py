@@ -198,7 +198,7 @@ for ek, label in ENH_KEYS:
     to_assign = int(enh_totals[ek])
     assigned = 0
     for _ in range(to_assign):
-        eligible = [idx for idx, p in enumerate(pool) if p['current_enh_total'] < p['max_enh']]
+        eligible = [idx for idx, p in enumerate(pool) if not p['is_token'] and p['current_enh_total'] < p['max_enh']]
         if not eligible:
             log_write(f"Could not assign remaining {to_assign - assigned} units of {ek}: no eligible cards left.")
             break
