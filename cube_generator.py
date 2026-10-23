@@ -8,7 +8,7 @@ from collections import Counter, defaultdict
 # ----- Config / paths -----
 CARDS_DIR = 'cards'
 CARDS_TXT = os.environ.get('CUBEFORGE_CARD_LIST', os.path.join(CARDS_DIR, 'cards.txt'))
-CARDS_JSON = os.path.join(CARDS_DIR, 'cards.json')
+CARDS_JSON = os.environ.get('CUBEFORGE_CARDS_JSON', os.path.join(CARDS_DIR, 'cards.json'))
 OUTPUT_MD = os.environ.get('CUBEFORGE_CUBE_OUTPUT', os.path.join(CARDS_DIR, 'cube.md'))
 LOG_FILE = os.environ.get('CUBEFORGE_LOG_OUTPUT', os.path.join(CARDS_DIR, 'cube.log'))
 ENABLE_ENHANCEMENTS = os.environ.get('CUBEFORGE_ENABLE_ENHANCEMENTS', '1') == '1'
