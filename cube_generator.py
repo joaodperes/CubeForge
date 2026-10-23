@@ -1,15 +1,19 @@
 import os
 import json
 import random
+import unicodedata
 import requests
 from collections import Counter, defaultdict
 
 # ----- Config / paths -----
 CARDS_DIR = 'cards'
-CARDS_TXT = os.path.join(CARDS_DIR, 'cards.txt')
-CARDS_JSON = os.path.join(CARDS_DIR, 'cards.json')
-OUTPUT_MD = os.path.join(CARDS_DIR, 'cube.md')
-LOG_FILE = os.path.join(CARDS_DIR, 'cube.log')
+CARDS_TXT = os.environ.get('CUBEFORGE_CARD_LIST', os.path.join(CARDS_DIR, 'cards.txt'))
+CARDS_JSON = os.environ.get('CUBEFORGE_CARDS_JSON', os.path.join(CARDS_DIR, 'cards.json'))
+OUTPUT_MD = os.environ.get('CUBEFORGE_CUBE_OUTPUT', os.path.join(CARDS_DIR, 'cube.md'))
+LOG_FILE = os.environ.get('CUBEFORGE_LOG_OUTPUT', os.path.join(CARDS_DIR, 'cube.log'))
+ENABLE_ENHANCEMENTS = os.environ.get('CUBEFORGE_ENABLE_ENHANCEMENTS', '1') == '1'
+os.makedirs(os.path.dirname(OUTPUT_MD) or '.', exist_ok=True)
+os.makedirs(os.path.dirname(LOG_FILE) or '.', exist_ok=True)
 
 # ----- Enhancement keys & friendly labels -----
 ENH_KEYS = [
@@ -71,7 +75,7 @@ if not os.path.exists(CARDS_TXT):
 
 with open(CARDS_TXT, 'r', encoding='utf-8') as f:
     titles_list = [line.strip() for line in f if line.strip()]
-title_counter = Counter(titles_list)
+requested_titles = Counter(titles_list)
 
 # ----- Load JSON -----
 if not os.path.exists(CARDS_JSON):
@@ -83,6 +87,27 @@ with open(CARDS_JSON, 'r', encoding='utf-8') as f:
 # Map cardTitle -> card (first occurrence)
 json_map = {card.get('cardTitle'): card for card in cards if 'cardTitle' in card}
 
+# Resolve harmless title differences such as "Po's Pixies" / "Pos Pixies".
+# Ambiguous normalized matches are intentionally rejected, not guessed.
+def normalized_title(title):
+    return ''.join(ch for ch in unicodedata.normalize('NFKD', title).casefold() if ch.isalnum())
+
+normalized_index = defaultdict(list)
+for title in json_map:
+    normalized_index[normalized_title(title)].append(title)
+
+title_counter = Counter()
+missing_titles = []
+for requested, copies in requested_titles.items():
+    if requested in json_map:
+        title_counter[requested] += copies
+    else:
+        candidates = normalized_index.get(normalized_title(requested), [])
+        if len(candidates) == 1:
+            title_counter[candidates[0]] += copies
+        else:
+            missing_titles.append(requested + (' (ambiguous match)' if candidates else ''))
+
 # ----- Logging setup -----
 def log_write(msg):
     with open(LOG_FILE, 'a', encoding='utf-8') as log:
@@ -93,7 +118,7 @@ with open(LOG_FILE, 'w', encoding='utf-8') as log:
     log.write('=== CUBE GENERATION LOG ===\n')
 
 # Report missing titles
-missing = set(title_counter.keys()) - set(json_map.keys())
+missing = missing_titles
 if missing:
     log_write('Missing JSON entries for these titles:')
     for t in sorted(missing):
@@ -139,7 +164,7 @@ for title, copies in title_counter.items():
         raw = get_field(card, ek, 0)
         enh_count = safe_int(raw, 0)
         # Multiply by number of copies — these are the total enhancement units to distribute
-        enh_totals[ek] += enh_count * copies
+        enh_totals[ek] += enh_count * copies if ENABLE_ENHANCEMENTS else 0
 
     # create pool entries (one per copy)
     for i in range(copies):
@@ -147,6 +172,7 @@ for title, copies in title_counter.items():
         entry = {
             'house': house,
             'title': title,
+            'copy_id': f'{house}:{safe_name}:{i + 1}',
             'img_name': img_name,
             'img_path': relative_img_path,
             'is_token': "Yes" if card.get('token', False) else "",
@@ -165,13 +191,14 @@ for ek, _ in ENH_KEYS:
     log_write(f" - {ek}: {enh_totals[ek]}")
 
 # ----- Assign enhancements randomly, respecting per-card max -----
-random.seed()
+seed_value = os.environ.get('CUBEFORGE_SEED')
+random.seed(int(seed_value) if seed_value is not None else None)
 
 for ek, label in ENH_KEYS:
     to_assign = int(enh_totals[ek])
     assigned = 0
     for _ in range(to_assign):
-        eligible = [idx for idx, p in enumerate(pool) if p['current_enh_total'] < p['max_enh']]
+        eligible = [idx for idx, p in enumerate(pool) if not p['is_token'] and p['current_enh_total'] < p['max_enh']]
         if not eligible:
             log_write(f"Could not assign remaining {to_assign - assigned} units of {ek}: no eligible cards left.")
             break
@@ -211,7 +238,7 @@ if missing_images:
 
 # ----- Write cube.md (one row per copy) -----
 headers = [
-    'House', 'CardTitle', 'Image Link', 'Is Token', 'Amber'
+    'House', 'CardTitle', 'CopyId', 'Image Link', 'Is Token', 'Amber'
 ] + [label for _, label in ENH_KEYS]
 
 with open(OUTPUT_MD, 'w', encoding='utf-8') as md:
@@ -222,6 +249,7 @@ with open(OUTPUT_MD, 'w', encoding='utf-8') as md:
         row_vals = [
             p['house'],
             p['title'],
+            p['copy_id'],
             img_md,
             p['is_token'],
             p['amber']

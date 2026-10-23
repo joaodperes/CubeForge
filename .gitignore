@@ -208,3 +208,9 @@ __marimo__/
 
 draft_results_*.json
 bot_picks_log*.*
+# CubeForge-generated outputs
+cards/generated/
+draft_results_*.json
+deck_*.json
+bot_picks_log_*.json
+bot_logs.json

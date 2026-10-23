@@ -6,6 +6,8 @@ import json
 import random
 import math
 
+from deckbuilding import build_deck, export_card as serialize_card
+
 from draft_simulator import (
     load_cube_md,
     load_card_stats_from_json,
@@ -48,7 +50,7 @@ class DraftUI:
         self.card_pool, _ = build_card_pool(self.cards)
         self.stats, self.house_map = load_card_stats_from_json(CARDS_JSON_PATH)
 
-        self.num_players = self.prompt_player_count()
+        self.num_players = int(os.environ['CUBEFORGE_NUM_PLAYERS']) if os.environ.get('CUBEFORGE_NUM_PLAYERS') else self.prompt_player_count()
         self.players = [[] for _ in range(self.num_players)]
         self.total_packs = self.num_players * NUM_ROUNDS
 
@@ -60,6 +62,9 @@ class DraftUI:
             self.root.destroy()
             return
 
+        seed = os.environ.get('CUBEFORGE_SEED')
+        if seed is not None:
+            random.seed(int(seed))
         random.shuffle(self.card_pool)
         self.packs = [[self.card_pool.pop() for _ in range(PACK_SIZE)] for _ in range(self.total_packs)]
 
@@ -71,12 +76,12 @@ class DraftUI:
         self.load_next_pack()
 
     def prompt_player_count(self):
-        max_players = max(3, len(self.card_pool) // (PACK_SIZE * NUM_ROUNDS))
+        max_players = len(self.card_pool) // (PACK_SIZE * NUM_ROUNDS)
         self._max_players = max_players
         def submit():
             try:
                 val = int(entry.get())
-                if val < 3 or val > max_players:
+                if val < 2 or val > max_players:
                     raise ValueError
                 count_window.destroy()
                 self.root.deiconify()
@@ -85,13 +90,13 @@ class DraftUI:
                 self.root.update()
                 return val
             except:
-                messagebox.showerror("Invalid Input", f"Enter a number between 3 and {max_players}.")
+                messagebox.showerror("Invalid Input", f"Enter a number between 2 and {max_players}.")
 
         self.root.withdraw()
         count_window = tk.Toplevel()
         count_window.geometry("300x150")
         count_window.title("Number of Players")
-        tk.Label(count_window, text=f"Enter number of players (3–{self._max_players}):").pack(padx=10, pady=10)
+        tk.Label(count_window, text=f"Enter number of players (2–{self._max_players}):").pack(padx=10, pady=10)
         entry = tk.Entry(count_window)
         entry.pack(padx=10)
         entry.insert(0, str(DEFAULT_NUM_PLAYERS))
@@ -171,7 +176,7 @@ class DraftUI:
             except:
                 return 0
 
-        printed_amber = to_int(card_data.get('amber', 0))
+        printed_amber = to_int(card_data.get('Amber', card_data.get('amber', 0)))
         enh_counts = {k: to_int(card_data.get(k, 0)) for k, _ in ENH_ORDER}
 
         # Skip space for printed amber
@@ -196,7 +201,7 @@ class DraftUI:
 
     def get_card_image_with_icons(self, house, title, card_data, size=(180, 252), icon_size=15):
         sanitized_name = title.replace("'", "").replace(" ", "_").replace(":", "")
-        image_path = os.path.join(CARD_IMAGE_PATH, house, f"{sanitized_name}.png")
+        image_path = os.path.join(CARD_IMAGE_PATH, card_data.get("ImageLink") or os.path.join(house, f"{sanitized_name}.png"))
         try:
             card_img = Image.open(image_path).convert('RGBA').resize(size)
         except:
@@ -298,7 +303,7 @@ class DraftUI:
                 for c in cards[i:i+max_per_row]:
                     title = c.get('CardTitle') if isinstance(c, dict) else c
                     san = title.replace(" ", "_").replace("'", "").replace(":", "")
-                    image_path = os.path.join(CARD_IMAGE_PATH, house, f"{san}.png")
+                    image_path = os.path.join(CARD_IMAGE_PATH, c.get("ImageLink") or os.path.join(house, f"{san}.png")) if isinstance(c, dict) else os.path.join(CARD_IMAGE_PATH, house, f"{san}.png")
                     try:
                         card_img = Image.open(image_path).convert('RGBA').resize((90, 126))
                     except:
@@ -309,6 +314,104 @@ class DraftUI:
                     lbl.image = photo
                     lbl.pack(side=tk.LEFT, padx=2)
                     self.pick_images.append(photo)
+
+    @staticmethod
+    def export_card(card, index):
+        return serialize_card(card, index)
+
+    def open_deckbuilder(self):
+        """Choose three houses and six-to-twelve real cards from each; add token fillers."""
+        from uuid import uuid4
+
+        by_house = {}
+        for copy in self.players[0]:
+            title = copy.get('CardTitle') if isinstance(copy, dict) else str(copy)
+            house = (copy.get('House') if isinstance(copy, dict) else None) or self.house_map.get(title)
+            if house:
+                by_house.setdefault(house, []).append(copy)
+
+        eligible = [house for house, cards in sorted(by_house.items(),
+                    key=lambda pair: len(pair[1]), reverse=True) if len(cards) >= 6]
+        if len(eligible) < 3:
+            messagebox.showwarning('Cannot build deck',
+                                   'You need at least six drafted cards in each of three houses.')
+            return
+
+        dialog = tk.Toplevel(self.root)
+        dialog.title('CubeForge — Build a 36-Card Deck')
+        dialog.geometry('1120x700')
+        tk.Label(dialog, text='Select exactly three houses, then 6–12 cards per house. '
+                 'Tokens fill each house to 12.', font=('Arial', 11)).pack(pady=8)
+        houses_frame = tk.Frame(dialog)
+        houses_frame.pack(fill='x', padx=10)
+        choices = {h: tk.BooleanVar(value=(h in eligible[:3])) for h in eligible}
+        cards_frame = tk.Frame(dialog)
+        cards_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        status = tk.Label(dialog, text='', font=('Arial', 11))
+        status.pack(pady=4)
+        listboxes = {}
+
+        def selected_houses():
+            return [h for h in eligible if choices[h].get()]
+
+        def refresh():
+            for child in cards_frame.winfo_children():
+                child.destroy()
+            listboxes.clear()
+            active = selected_houses()
+            if len(active) != 3:
+                status.config(text=f'Select exactly three houses ({len(active)} selected).')
+                return
+            status.config(text='Choose 6–12 real cards in each list; unselected picks are sideboard.')
+            for house in active:
+                frame = tk.LabelFrame(cards_frame, text=f'{house} ({len(by_house[house])} drafted)')
+                frame.pack(side='left', fill='both', expand=True, padx=4)
+                scroll = tk.Scrollbar(frame)
+                scroll.pack(side='right', fill='y')
+                lb = tk.Listbox(frame, selectmode=tk.MULTIPLE, exportselection=False,
+                                width=34, height=23, yscrollcommand=scroll.set)
+                lb.pack(side='left', fill='both', expand=True)
+                scroll.config(command=lb.yview)
+                for copy in by_house[house]:
+                    title = copy.get('CardTitle') if isinstance(copy, dict) else str(copy)
+                    enh = ''
+                    if isinstance(copy, dict):
+                        icons = [f'{key[4:]}:{copy.get(key)}' for key, _ in ENH_ORDER
+                                 if int(copy.get(key, 0) or 0)]
+                        if icons:
+                            enh = ' [' + ', '.join(icons) + ']'
+                    lb.insert(tk.END, title + enh)
+                lb.selection_set(0, min(11, len(by_house[house]) - 1))
+                listboxes[house] = lb
+
+        for house in eligible:
+            tk.Checkbutton(houses_frame, text=f'{house} ({len(by_house[house])})',
+                           variable=choices[house], command=refresh).pack(side='left', padx=6)
+
+        def export_deck():
+            active = selected_houses()
+            if len(active) != 3:
+                messagebox.showerror('Invalid deck', 'Select exactly three houses.', parent=dialog)
+                return
+            chosen = {}
+            for house in active:
+                lb = listboxes.get(house)
+                indexes = lb.curselection() if lb else ()
+                chosen[house] = [by_house[house][i] for i in indexes]
+            try:
+                result = build_deck(chosen)
+            except ValueError as exc:
+                messagebox.showerror('Invalid deck', str(exc), parent=dialog)
+                return
+            result['sideboard_count'] = len(self.players[0]) - sum(
+                len(cards) for cards in chosen.values())
+            path = f'deck_{uuid4().hex[:8]}.json'
+            with open(path, 'w', encoding='utf-8') as handle:
+                json.dump(result, handle, indent=2, ensure_ascii=False)
+            messagebox.showinfo('Deck exported', f'36 cards saved to {path}', parent=dialog)
+
+        refresh()
+        tk.Button(dialog, text='Validate and Export Deck', command=export_deck).pack(pady=10)
 
     def finish_draft(self):
         self.update_drafted()
@@ -332,7 +435,7 @@ class DraftUI:
             filename = f"draft_results_{uid}.json"
             with open(filename, "w", encoding="utf-8") as f:
                 json.dump({
-                    f"Player {i+1}": [{"id": idx + 1, "card": (c.get('CardTitle') if isinstance(c, dict) else c)} for idx, c in enumerate(picks)]
+                    f"Player {i+1}": [self.export_card(c, idx) for idx, c in enumerate(picks)]
                     for i, picks in enumerate(self.players)
                 }, f, indent=2, ensure_ascii=False)
 
@@ -357,6 +460,7 @@ class DraftUI:
         export_btn.pack(pady=5)
         if self.exported:
             export_btn.config(state=tk.DISABLED)
+        tk.Button(self.end_window, text="Build 36-Card Deck", command=self.open_deckbuilder).pack(pady=5)
         tk.Button(self.end_window, text="Restart Draft", command=restart).pack(pady=5)
         tk.Button(self.end_window, text="Exit", command=self.root.quit).pack(pady=5)
 
