@@ -6,6 +6,8 @@ import json
 import random
 import math
 
+from deckbuilding import build_deck, export_card as serialize_card
+
 from draft_simulator import (
     load_cube_md,
     load_card_stats_from_json,
@@ -315,29 +317,12 @@ class DraftUI:
 
     @staticmethod
     def export_card(card, index):
-        """Export card identity, printed amber and enhancements without losing old card field."""
-        if isinstance(card, dict):
-            return {
-                'id': index + 1,
-                'card': card.get('CardTitle', ''),
-                'copy_id': card.get('CopyId', f'legacy-{index + 1}'),
-                'house': card.get('House', ''),
-                'amber': card.get('Amber', 0),
-                'enhancements': {
-                    key: card.get(key, 0) for key, _icon in ENH_ORDER
-                }
-            }
-        return {'id': index + 1, 'card': str(card), 'enhancements': {}}
+        return serialize_card(card, index)
 
     def open_deckbuilder(self):
         """Choose three houses and six-to-twelve real cards from each; add token fillers."""
         from uuid import uuid4
 
-        token_names = {
-            'Brobnar': 'Warrior', 'Dis': 'Snare', 'Logos': 'Chronicler',
-            'Mars': 'Rebel', 'Sanctum': 'Defender',
-            'Shadows': 'Prowler', 'Untamed': 'Twilight Pixie',
-        }
         by_house = {}
         for copy in self.players[0]:
             title = copy.get('CardTitle') if isinstance(copy, dict) else str(copy)
@@ -408,36 +393,21 @@ class DraftUI:
             if len(active) != 3:
                 messagebox.showerror('Invalid deck', 'Select exactly three houses.', parent=dialog)
                 return
-            deck = []
+            chosen = {}
             for house in active:
                 lb = listboxes.get(house)
                 indexes = lb.curselection() if lb else ()
-                if not 6 <= len(indexes) <= 12:
-                    messagebox.showerror('Invalid deck',
-                        f'{house}: choose between 6 and 12 cards (currently {len(indexes)}).',
-                        parent=dialog)
-                    return
-                for i in indexes:
-                    deck.append(self.export_card(by_house[house][i], len(deck)))
-                for i in range(12 - len(indexes)):
-                    token = {
-                        'id': len(deck) + 1,
-                        'card': token_names[house],
-                        'house': house,
-                        'copy_id': f'token:{house}:{i + 1}',
-                        'amber': 0,
-                        'enhancements': {},
-                        'is_token': True,
-                    }
-                    deck.append(token)
-
-            if len(deck) != 36:
-                raise RuntimeError('Internal error: deck does not contain 36 cards')
+                chosen[house] = [by_house[house][i] for i in indexes]
+            try:
+                result = build_deck(chosen)
+            except ValueError as exc:
+                messagebox.showerror('Invalid deck', str(exc), parent=dialog)
+                return
+            result['sideboard_count'] = len(self.players[0]) - sum(
+                len(cards) for cards in chosen.values())
             path = f'deck_{uuid4().hex[:8]}.json'
             with open(path, 'w', encoding='utf-8') as handle:
-                json.dump({'houses': active, 'cards': deck, 'sideboard_count': 60 - sum(
-                    len(listboxes[h].curselection()) for h in active)}, handle,
-                    indent=2, ensure_ascii=False)
+                json.dump(result, handle, indent=2, ensure_ascii=False)
             messagebox.showinfo('Deck exported', f'36 cards saved to {path}', parent=dialog)
 
         refresh()
