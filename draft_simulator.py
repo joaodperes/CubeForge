@@ -6,7 +6,7 @@ import os
 PACK_SIZE = 10
 NUM_ROUNDS = 6
 DEFAULT_NUM_PLAYERS = 3
-CUBE_MD_PATH = 'cards/cube.md'
+CUBE_MD_PATH = os.environ.get('CUBEFORGE_CUBE_PATH', 'cards/cube.md')
 CARDS_JSON_PATH = 'cards/cards.json'
 _BOT_LOGS = []
 
@@ -112,6 +112,7 @@ def load_cube_md(md_path):
         cc = {
             'House': row.get('House', ''),
             'CardTitle': row.get('CardTitle', row.get('Card', '')),
+            'CopyId': row.get('CopyId', f'legacy-{len(cards) + 1}'),
             'ImageLink': img_path,
             'IsToken': (row.get('Is Token', row.get('IsToken', '')).strip().lower() == 'yes'),
             'AmberControl': parse_float(row.get('AmberControl', row.get('extraCardInfo.amberControl', ''))),
@@ -178,12 +179,12 @@ def load_card_stats_from_json(json_path):
         synergies = entry.get('extraCardInfo.synergies', entry.get('synergies', [])) or []
 
         stats[title] = {
-            'amberControl': float(gf('amberControl', 0.0)),
-            'expectedAmber': float(gf('expectedAmber', 0.0)),
-            'artifactControl': float(gf('artifactControl', 0.0)),
-            'creatureControl': float(gf('creatureControl', 0.0)),
-            'efficiency': float(gf('efficiency', 0.0)),
-            'recursion': float(gf('recursion', 0.0)),
+            'amberControl': parse_float(gf('amberControl', 0.0)),
+            'expectedAmber': parse_float(gf('expectedAmber', 0.0)),
+            'artifactControl': parse_float(gf('artifactControl', 0.0)),
+            'creatureControl': parse_float(gf('creatureControl', 0.0)),
+            'efficiency': parse_float(gf('efficiency', 0.0)),
+            'recursion': parse_float(gf('recursion', 0.0)),
             'traits': traits,
             'synergies': synergies,
             # keep comboWith if present
@@ -196,149 +197,149 @@ def load_card_stats_from_json(json_path):
 
     return stats, house_map
 
+def enhancement_score(candidate, current_stats=None):
+    """Marginal value of enhancements on this specific physical card copy.
+
+    These are heuristic weights for drafting, not official AERC values.
+    Printed amber is already reflected in the normal card statistics.
+    """
+    if not isinstance(candidate, dict):
+        return 0.0
+    current_stats = current_stats or {}
+    want_amber = current_stats.get('amberControl', 0) < TARGET_STATS['amberControl']
+    want_control = current_stats.get('creatureControl', 0) < TARGET_STATS['creatureControl']
+    weights = {
+        'Enh.Amber': 0.90,
+        'Enh.Capture': 0.48 if want_amber else 0.30,
+        'Enh.Draw': 0.65,
+        'Enh.Damage': 0.50 if want_control else 0.32,
+        'Enh.Discard': 0.55
+    }
+    return sum(weights[key] * max(0, safe_int(candidate.get(key, 0)))
+               for key in weights)
+
+
 def bot_pick(pack, picked_cards, stats, house_map, bot_index):
-    """
-    pack: list of items which may be dicts (card-copy) or strings (title).
-    picked_cards: list of previously picked items (same representation as stored in players lists).
-    """
-    best_score = None
-    best_card = None
+    """Choose a card by card value, its unique enhancements, combos and house needs."""
+    if not pack:
+        raise ValueError('Cannot pick from an empty pack')
 
-    # helpers to get title and card_stats
-    def title_of(item):
-        return title_for(item)
-
-    # Build house counts and picked traits by looking up titles in stats/house_map
     house_counts = {}
-    picked_traits = set()
-    picked_cards_set = set(title_of(pc) for pc in picked_cards)
+    picked_trait_houses = {}
+    picked_titles = set()
+    for picked in picked_cards:
+        title = title_for(picked)
+        picked_titles.add(title)
+        house = (picked.get('House') if isinstance(picked, dict) else None) or house_map.get(title)
+        if house:
+            house_counts[house] = house_counts.get(house, 0) + 1
+        for item in stats.get(title, {}).get('traits', []):
+            trait = item.get('trait') if isinstance(item, dict) else item
+            if trait:
+                picked_trait_houses.setdefault(trait, set()).add(house)
 
-    for c in picked_cards:
-        t = title_of(c)
-        h = house_map.get(t)
-        if h:
-            house_counts[h] = house_counts.get(h, 0) + 1
-        card_stats = stats.get(t, {})
-        for trait in card_stats.get('traits', []):
-            tt = trait.get('trait') if isinstance(trait, dict) else trait
-            if tt:
-                picked_traits.add(tt)
+    # Estimate final-deck contributions: ignore cards beyond the first twelve per house.
+    current_stats = {key: 0.0 for key in TARGET_STATS}
+    used = {}
+    top_houses = sorted(house_counts, key=house_counts.get, reverse=True)[:3]
+    for picked in picked_cards:
+        title = title_for(picked)
+        house = (picked.get('House') if isinstance(picked, dict) else None) or house_map.get(title)
+        if house not in top_houses or used.get(house, 0) >= 12:
+            continue
+        used[house] = used.get(house, 0) + 1
+        for key in TARGET_STATS:
+            current_stats[key] += parse_float(stats.get(title, {}).get(key, 0))
 
-    # Current stat totals
-    current_stats = {k: 0.0 for k in TARGET_STATS}
-    for c in picked_cards:
-        ctitle = title_of(c)
-        c_stats = stats.get(ctitle, {})
-        for k in TARGET_STATS:
-            current_stats[k] += c_stats.get(k, 0.0)
-
-    distinct_houses = len(house_counts)
-
-    # Evaluate each candidate in pack
+    candidates = []
     for candidate in pack:
-        ctitle = title_of(candidate)
-        card_stats = stats.get(ctitle, {})
-        house = house_map.get(ctitle)
-        if not card_stats or not house:
+        title = title_for(candidate)
+        profile = stats.get(title, {})
+        house = (candidate.get('House') if isinstance(candidate, dict) else None) or house_map.get(title)
+        if not profile or not house:
+            candidates.append((float('-inf'), candidate, {}))
             continue
 
-        ### --- Trait Synergy Score ---
-        synergy_score = 0.0
-        for synergy in card_stats.get('synergies', []):
-            trait = synergy.get('trait')
-            rating = synergy.get('rating', 0)
-            house_condition = synergy.get('house', 'anyHouse')
-            if trait in picked_traits:
-                valid = (
-                    house_condition == 'anyHouse' or
-                    (house_condition == 'house' and house == house_map.get(ctitle)) or
-                    (house_condition == 'outOfHouse' and house != house_map.get(ctitle))
-                )
-                if valid:
-                    synergy_score += rating * 1.0
-
-        ### --- Direct Combo Score ---
-        combo_bonus = 0.0
-        for combo_card in card_stats.get('comboWith', []):
-            if combo_card in picked_cards_set:
-                combo_info = stats.get(combo_card, {})
-                house_condition = combo_info.get('house', 'anyHouse')
-                valid = (
-                    house_condition == 'anyHouse' or
-                    (house_condition == 'house' and house == house_map.get(combo_card)) or
-                    (house_condition == 'outOfHouse' and house != house_map.get(combo_card))
-                )
-                if valid:
-                    combo_bonus += 2.0
-
-        ### --- Potential Future Combo Score ---
-        future_combo_bonus = 0.0
-        for picked in picked_cards:
-            picked_stats = stats.get(title_of(picked), {})
-            for target in picked_stats.get('comboWith', []):
-                if target == ctitle:
-                    house_condition = picked_stats.get('house', 'anyHouse')
-                    valid = (
-                        house_condition == 'anyHouse' or
-                        (house_condition == 'house' and house == house_map.get(title_of(picked))) or
-                        (house_condition == 'outOfHouse' and house != house_map.get(title_of(picked)))
-                    )
-                    if valid:
-                        future_combo_bonus += 1.0
-
-        ### --- House Commitment Multiplier ---
-        house_count = house_counts.get(house, 0)
-        if distinct_houses < 3:
-            house_multiplier = 1.0
-        elif house in house_counts:
-            if house_count > 12:
-                house_multiplier = 1 / (1.2 ** (house_count - 12))
-            elif house_count == 11:
-                house_multiplier = 1.75
-            elif 9 <= house_count < 11:
-                house_multiplier = 1.5
-            elif 6 <= house_count < 9:
-                house_multiplier = 1.3
-            elif 3 <= house_count < 6:
-                house_multiplier = 1.1
+        synergy = 0.0
+        for item in profile.get('synergies', []):
+            if not isinstance(item, dict):
+                continue
+            trait = item.get('trait')
+            related_houses = picked_trait_houses.get(trait, set())
+            condition = item.get('house', 'anyHouse')
+            if condition == 'house':
+                matches = house in related_houses
+            elif condition == 'outOfHouse':
+                matches = any(other != house for other in related_houses)
             else:
-                house_multiplier = 1.0
+                matches = bool(related_houses)
+            if matches:
+                synergy += parse_float(item.get('rating', 0))
+
+        combos = 0.0
+        for item in profile.get('comboWith', []):
+            combo_title = item.get('cardTitle', item.get('title', '')) if isinstance(item, dict) else item
+            if combo_title in picked_titles:
+                combos += 2.0
+        for selected in picked_cards:
+            selected_title = title_for(selected)
+            for item in stats.get(selected_title, {}).get('comboWith', []):
+                combo_title = item.get('cardTitle', item.get('title', '')) if isinstance(item, dict) else item
+                if combo_title == title:
+                    combos += 1.0
+
+        # A draft comprises 60 picks but the finished KeyForge deck uses three houses
+        # of twelve cards. A fourth house or a thirteenth card should be harder to justify.
+        count = house_counts.get(house, 0)
+        if count >= 12:
+            house_weight = 0.35
+        elif house in top_houses:
+            house_weight = 1.0 + min(count, 11) * 0.045
+        elif len(top_houses) >= 3:
+            house_weight = 0.25
         else:
-            house_multiplier = 0.5
+            house_weight = 1.0
 
-        ### --- Stat-Based Score ---
-        stat_score = 0.0
-        unmet_goals = any(current_stats[k] < TARGET_STATS[k] for k in TARGET_STATS)
+        stat_value = 0.0
+        for key, goal in TARGET_STATS.items():
+            shortfall = max(0.0, goal - current_stats[key])
+            if shortfall:
+                stat_value += 0.1 * shortfall * parse_float(profile.get(key, 0))
+        stat_value += 0.10 * parse_float(profile.get('efficiency', 0))
+        stat_value += 0.08 * parse_float(profile.get('recursion', 0))
 
-        if unmet_goals:
-            for k in TARGET_STATS:
-                if current_stats[k] < TARGET_STATS[k]:
-                    stat_score += 0.1 * (TARGET_STATS[k] - current_stats[k]) * card_stats.get(k, 0.0)
-        else:
-            stat_score += 0.05 * card_stats.get('efficiency', 0.0)
-            stat_score += 0.03 * card_stats.get('recursion', 0.0)
-            stat_score += 0.02 * card_stats.get('creatureControl', 0.0)
+        enhancements = enhancement_score(candidate, current_stats)
+        total = (stat_value + synergy + combos + enhancements) * house_weight
+        candidates.append((total, candidate, {
+            'base': round(stat_value, 3),
+            'synergies': round(synergy, 3),
+            'combos': round(combos, 3),
+            'enhancements': round(enhancements, 3),
+            'house_weight': round(house_weight, 3),
+        }))
 
-        total_score = (synergy_score + combo_bonus + future_combo_bonus) * house_multiplier + stat_score
+    best_score, chosen, details = max(candidates, key=lambda row: row[0])
+    if best_score == float('-inf'):
+        chosen = random.choice(pack)
+        best_score, details = None, {}
 
-        if best_score is None or total_score > best_score:
-            best_score = total_score
-            best_card = candidate
-
-    chosen_card = best_card or random.choice(pack)
-    # log the pick
     get_bot_logs()[bot_index].append({
-        "pick_num": len(picked_cards) + 1,
-        "pack": [title_for(x) for x in pack],
-        "picked_cards": [title_for(x) for x in picked_cards],
-        "chosen_card": title_for(chosen_card),
-        "score": best_score,
-        "house_counts": dict(house_counts),
-        "current_stats": current_stats,
+        'pick_num': len(picked_cards) + 1,
+        'pack': [title_for(card) for card in pack],
+        'picked_cards': [title_for(card) for card in picked_cards],
+        'chosen_card': title_for(chosen),
+        'copy_id': chosen.get('CopyId') if isinstance(chosen, dict) else None,
+        'score': best_score,
+        'score_breakdown': details,
+        'house_counts': house_counts,
+        'current_stats': current_stats,
     })
-    return chosen_card
+    return chosen
+
 
 def run_draft(card_pool, house_map, stats, num_players):
+    if not _BOT_LOGS or len(_BOT_LOGS) != num_players:
+        initialize_bot_logs(num_players)
     total_packs = num_players * NUM_ROUNDS
     if len(card_pool) < total_packs * PACK_SIZE:
         raise ValueError("Not enough cards to run full draft.")
