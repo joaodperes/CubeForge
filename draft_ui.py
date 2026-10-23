@@ -48,7 +48,7 @@ class DraftUI:
         self.card_pool, _ = build_card_pool(self.cards)
         self.stats, self.house_map = load_card_stats_from_json(CARDS_JSON_PATH)
 
-        self.num_players = self.prompt_player_count()
+        self.num_players = int(os.environ['CUBEFORGE_NUM_PLAYERS']) if os.environ.get('CUBEFORGE_NUM_PLAYERS') else self.prompt_player_count()
         self.players = [[] for _ in range(self.num_players)]
         self.total_packs = self.num_players * NUM_ROUNDS
 
@@ -60,6 +60,9 @@ class DraftUI:
             self.root.destroy()
             return
 
+        seed = os.environ.get('CUBEFORGE_SEED')
+        if seed is not None:
+            random.seed(int(seed))
         random.shuffle(self.card_pool)
         self.packs = [[self.card_pool.pop() for _ in range(PACK_SIZE)] for _ in range(self.total_packs)]
 
@@ -71,12 +74,12 @@ class DraftUI:
         self.load_next_pack()
 
     def prompt_player_count(self):
-        max_players = max(3, len(self.card_pool) // (PACK_SIZE * NUM_ROUNDS))
+        max_players = len(self.card_pool) // (PACK_SIZE * NUM_ROUNDS)
         self._max_players = max_players
         def submit():
             try:
                 val = int(entry.get())
-                if val < 3 or val > max_players:
+                if val < 2 or val > max_players:
                     raise ValueError
                 count_window.destroy()
                 self.root.deiconify()
@@ -85,13 +88,13 @@ class DraftUI:
                 self.root.update()
                 return val
             except:
-                messagebox.showerror("Invalid Input", f"Enter a number between 3 and {max_players}.")
+                messagebox.showerror("Invalid Input", f"Enter a number between 2 and {max_players}.")
 
         self.root.withdraw()
         count_window = tk.Toplevel()
         count_window.geometry("300x150")
         count_window.title("Number of Players")
-        tk.Label(count_window, text=f"Enter number of players (3–{self._max_players}):").pack(padx=10, pady=10)
+        tk.Label(count_window, text=f"Enter number of players (2–{self._max_players}):").pack(padx=10, pady=10)
         entry = tk.Entry(count_window)
         entry.pack(padx=10)
         entry.insert(0, str(DEFAULT_NUM_PLAYERS))
@@ -171,7 +174,7 @@ class DraftUI:
             except:
                 return 0
 
-        printed_amber = to_int(card_data.get('amber', 0))
+        printed_amber = to_int(card_data.get('Amber', card_data.get('amber', 0)))
         enh_counts = {k: to_int(card_data.get(k, 0)) for k, _ in ENH_ORDER}
 
         # Skip space for printed amber
@@ -196,7 +199,7 @@ class DraftUI:
 
     def get_card_image_with_icons(self, house, title, card_data, size=(180, 252), icon_size=15):
         sanitized_name = title.replace("'", "").replace(" ", "_").replace(":", "")
-        image_path = os.path.join(CARD_IMAGE_PATH, house, f"{sanitized_name}.png")
+        image_path = os.path.join(CARD_IMAGE_PATH, card_data.get("ImageLink") or os.path.join(house, f"{sanitized_name}.png"))
         try:
             card_img = Image.open(image_path).convert('RGBA').resize(size)
         except:
@@ -298,7 +301,7 @@ class DraftUI:
                 for c in cards[i:i+max_per_row]:
                     title = c.get('CardTitle') if isinstance(c, dict) else c
                     san = title.replace(" ", "_").replace("'", "").replace(":", "")
-                    image_path = os.path.join(CARD_IMAGE_PATH, house, f"{san}.png")
+                    image_path = os.path.join(CARD_IMAGE_PATH, c.get("ImageLink") or os.path.join(house, f"{san}.png")) if isinstance(c, dict) else os.path.join(CARD_IMAGE_PATH, house, f"{san}.png")
                     try:
                         card_img = Image.open(image_path).convert('RGBA').resize((90, 126))
                     except:
@@ -309,6 +312,22 @@ class DraftUI:
                     lbl.image = photo
                     lbl.pack(side=tk.LEFT, padx=2)
                     self.pick_images.append(photo)
+
+    @staticmethod
+    def export_card(card, index):
+        """Export card identity, printed amber and enhancements without losing old card field."""
+        if isinstance(card, dict):
+            return {
+                'id': index + 1,
+                'card': card.get('CardTitle', ''),
+                'copy_id': card.get('CopyId', f'legacy-{index + 1}'),
+                'house': card.get('House', ''),
+                'amber': card.get('Amber', 0),
+                'enhancements': {
+                    key: card.get(key, 0) for key, _icon in ENH_ORDER
+                }
+            }
+        return {'id': index + 1, 'card': str(card), 'enhancements': {}}
 
     def finish_draft(self):
         self.update_drafted()
@@ -332,7 +351,7 @@ class DraftUI:
             filename = f"draft_results_{uid}.json"
             with open(filename, "w", encoding="utf-8") as f:
                 json.dump({
-                    f"Player {i+1}": [{"id": idx + 1, "card": (c.get('CardTitle') if isinstance(c, dict) else c)} for idx, c in enumerate(picks)]
+                    f"Player {i+1}": [self.export_card(c, idx) for idx, c in enumerate(picks)]
                     for i, picks in enumerate(self.players)
                 }, f, indent=2, ensure_ascii=False)
 
