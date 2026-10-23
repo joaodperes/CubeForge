@@ -16,3 +16,7 @@ jobs:
         run: python -m py_compile cubeforge.py cube_generator.py draft_simulator.py draft_ui.py
       - name: Run headless tests
         run: python -m unittest discover -s tests -v
+      - name: Prepare both shipped cube presets
+        run: |
+          python cubeforge.py --preset full --seed 42 --prepare-only
+          python cubeforge.py --preset enhancement-test --seed 42 --prepare-only
