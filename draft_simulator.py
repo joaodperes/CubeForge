@@ -7,7 +7,7 @@ PACK_SIZE = 10
 NUM_ROUNDS = 6
 DEFAULT_NUM_PLAYERS = 3
 CUBE_MD_PATH = os.environ.get('CUBEFORGE_CUBE_PATH', 'cards/cube.md')
-CARDS_JSON_PATH = 'cards/cards.json'
+CARDS_JSON_PATH = os.environ.get('CUBEFORGE_CARDS_JSON', 'cards/cards.json')
 _BOT_LOGS = []
 
 def initialize_bot_logs(num_players):
