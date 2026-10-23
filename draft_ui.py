@@ -329,6 +329,120 @@ class DraftUI:
             }
         return {'id': index + 1, 'card': str(card), 'enhancements': {}}
 
+    def open_deckbuilder(self):
+        """Choose three houses and six-to-twelve real cards from each; add token fillers."""
+        from uuid import uuid4
+
+        token_names = {
+            'Brobnar': 'Warrior', 'Dis': 'Snare', 'Logos': 'Chronicler',
+            'Mars': 'Rebel', 'Sanctum': 'Defender',
+            'Shadows': 'Prowler', 'Untamed': 'Twilight Pixie',
+        }
+        by_house = {}
+        for copy in self.players[0]:
+            title = copy.get('CardTitle') if isinstance(copy, dict) else str(copy)
+            house = (copy.get('House') if isinstance(copy, dict) else None) or self.house_map.get(title)
+            if house:
+                by_house.setdefault(house, []).append(copy)
+
+        eligible = [house for house, cards in sorted(by_house.items(),
+                    key=lambda pair: len(pair[1]), reverse=True) if len(cards) >= 6]
+        if len(eligible) < 3:
+            messagebox.showwarning('Cannot build deck',
+                                   'You need at least six drafted cards in each of three houses.')
+            return
+
+        dialog = tk.Toplevel(self.root)
+        dialog.title('CubeForge — Build a 36-Card Deck')
+        dialog.geometry('1120x700')
+        tk.Label(dialog, text='Select exactly three houses, then 6–12 cards per house. '
+                 'Tokens fill each house to 12.', font=('Arial', 11)).pack(pady=8)
+        houses_frame = tk.Frame(dialog)
+        houses_frame.pack(fill='x', padx=10)
+        choices = {h: tk.BooleanVar(value=(h in eligible[:3])) for h in eligible}
+        cards_frame = tk.Frame(dialog)
+        cards_frame.pack(fill='both', expand=True, padx=10, pady=10)
+        status = tk.Label(dialog, text='', font=('Arial', 11))
+        status.pack(pady=4)
+        listboxes = {}
+
+        def selected_houses():
+            return [h for h in eligible if choices[h].get()]
+
+        def refresh():
+            for child in cards_frame.winfo_children():
+                child.destroy()
+            listboxes.clear()
+            active = selected_houses()
+            if len(active) != 3:
+                status.config(text=f'Select exactly three houses ({len(active)} selected).')
+                return
+            status.config(text='Choose 6–12 real cards in each list; unselected picks are sideboard.')
+            for house in active:
+                frame = tk.LabelFrame(cards_frame, text=f'{house} ({len(by_house[house])} drafted)')
+                frame.pack(side='left', fill='both', expand=True, padx=4)
+                scroll = tk.Scrollbar(frame)
+                scroll.pack(side='right', fill='y')
+                lb = tk.Listbox(frame, selectmode=tk.MULTIPLE, exportselection=False,
+                                width=34, height=23, yscrollcommand=scroll.set)
+                lb.pack(side='left', fill='both', expand=True)
+                scroll.config(command=lb.yview)
+                for copy in by_house[house]:
+                    title = copy.get('CardTitle') if isinstance(copy, dict) else str(copy)
+                    enh = ''
+                    if isinstance(copy, dict):
+                        icons = [f'{key[4:]}:{copy.get(key)}' for key, _ in ENH_ORDER
+                                 if int(copy.get(key, 0) or 0)]
+                        if icons:
+                            enh = ' [' + ', '.join(icons) + ']'
+                    lb.insert(tk.END, title + enh)
+                lb.selection_set(0, min(11, len(by_house[house]) - 1))
+                listboxes[house] = lb
+
+        for house in eligible:
+            tk.Checkbutton(houses_frame, text=f'{house} ({len(by_house[house])})',
+                           variable=choices[house], command=refresh).pack(side='left', padx=6)
+
+        def export_deck():
+            active = selected_houses()
+            if len(active) != 3:
+                messagebox.showerror('Invalid deck', 'Select exactly three houses.', parent=dialog)
+                return
+            deck = []
+            for house in active:
+                lb = listboxes.get(house)
+                indexes = lb.curselection() if lb else ()
+                if not 6 <= len(indexes) <= 12:
+                    messagebox.showerror('Invalid deck',
+                        f'{house}: choose between 6 and 12 cards (currently {len(indexes)}).',
+                        parent=dialog)
+                    return
+                for i in indexes:
+                    deck.append(self.export_card(by_house[house][i], len(deck)))
+                for i in range(12 - len(indexes)):
+                    token = {
+                        'id': len(deck) + 1,
+                        'card': token_names[house],
+                        'house': house,
+                        'copy_id': f'token:{house}:{i + 1}',
+                        'amber': 0,
+                        'enhancements': {},
+                        'is_token': True,
+                    }
+                    deck.append(token)
+
+            if len(deck) != 36:
+                raise RuntimeError('Internal error: deck does not contain 36 cards')
+            path = f'deck_{uuid4().hex[:8]}.json'
+            with open(path, 'w', encoding='utf-8') as handle:
+                json.dump({'houses': active, 'cards': deck, 'sideboard_count': 60 - sum(
+                    len(listboxes[h].curselection()) for h in active)}, handle,
+                    indent=2, ensure_ascii=False)
+            messagebox.showinfo('Deck exported', f'36 cards saved to {path}', parent=dialog)
+
+        refresh()
+        tk.Button(dialog, text='Validate and Export Deck', command=export_deck).pack(pady=10)
+
     def finish_draft(self):
         self.update_drafted()
 
@@ -376,6 +490,7 @@ class DraftUI:
         export_btn.pack(pady=5)
         if self.exported:
             export_btn.config(state=tk.DISABLED)
+        tk.Button(self.end_window, text="Build 36-Card Deck", command=self.open_deckbuilder).pack(pady=5)
         tk.Button(self.end_window, text="Restart Draft", command=restart).pack(pady=5)
         tk.Button(self.end_window, text="Exit", command=self.root.quit).pack(pady=5)
 
