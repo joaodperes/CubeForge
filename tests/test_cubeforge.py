@@ -7,6 +7,8 @@ import sys
 import tempfile
 import unittest
 
+from deckbuilding import build_deck
+
 from draft_simulator import (
     build_card_pool, bot_pick, enhancement_score, get_bot_logs,
     initialize_bot_logs, load_cube_md
@@ -76,6 +78,34 @@ class DraftTests(unittest.TestCase):
             self.assertEqual(len({card['CopyId'] for card in pool}), 3)
             self.assertEqual(sum(card['Enh.Draw'] for card in pool), 6)
             self.assertTrue(all(card['CardTitle'] == 'Pos Pixies' for card in pool))
+
+    def test_build_deck_preserves_enhancements_and_adds_tokens(self):
+        chosen = {}
+        for house in ('Dis', 'Logos', 'Brobnar'):
+            chosen[house] = [
+                {'House': house, 'CardTitle': 'Sample', 'CopyId': f'{house}-{i}',
+                 'Enh.Draw': 1 if i == 0 else 0}
+                for i in range(6)
+            ]
+        result = build_deck(chosen)
+        self.assertEqual(len(result['cards']), 36)
+        self.assertEqual(sum(card.get('is_token', False) for card in result['cards']), 18)
+        self.assertEqual(result['tokens_per_house'], {house: 6 for house in chosen})
+        self.assertEqual(result['cards'][0]['enhancements']['Enh.Draw'], 1)
+
+    def test_deck_rejects_wrong_house_or_duplicate_copy(self):
+        chosen = {
+            house: [{'House': house, 'CardTitle': 'Sample',
+                     'CopyId': f'{house}-{i}'} for i in range(6)]
+            for house in ('Dis', 'Logos', 'Brobnar')
+        }
+        chosen['Dis'][0]['House'] = 'Logos'
+        with self.assertRaises(ValueError):
+            build_deck(chosen)
+        chosen['Dis'][0]['House'] = 'Dis'
+        chosen['Dis'][1]['CopyId'] = chosen['Dis'][0]['CopyId']
+        with self.assertRaises(ValueError):
+            build_deck(chosen)
 
 
 if __name__ == '__main__':
